@@ -140,36 +140,3 @@ struct attr *parse_dict(struct attr *p, char buffer[], int *index_ptr) {
     *index_ptr = index;
     return p;
 }
-
-
-int main(int argc, char *argv[]) {
-    FILE *fp;
-    char *file_name = "./won.torrent";
-    char *prog = argv[0];
-    int size;
-    int i = 0;
-    struct attr *head = (struct attr *) malloc(sizeof(struct attr));
-    struct attr *p = (struct attr *) malloc(sizeof(struct attr));
-    if ( (fp = fopen(file_name, "rb")) == NULL ) {
-        fprintf(stderr, "%s: can't open %s", prog, file_name);
-        exit(1);
-    }
-    size = file_size(fp);
-    char buffer[size];
-
-    fread(buffer, sizeof(buffer), 1, fp);
-    for ( int i = 0; i < size; i++ ) {
-        printf("%c", buffer[i]);
-    }
-    i = 0;
-    head->next = p;
-    p = parse_dict(head->next, buffer, &i);
-    while ( head->next != NULL ) {
-        if ( strcmp(head->next->key, "pieces") == 0 ) {
-            printf("%lu\n", strlen(head->next->value->data));
-        }
-        printf("%s: %s\n", head->next->key, head->next->value->data);
-        head = head->next;
-    }
-    return 0;
-}

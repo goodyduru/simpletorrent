@@ -1,0 +1,1 @@
+void out(struct attr *data);
