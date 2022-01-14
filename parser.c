@@ -1,6 +1,7 @@
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "parser.h"
 
@@ -14,44 +15,40 @@ int file_size(FILE *fp) {
     return size;
 }
 
-struct attr *add_item(struct attr *p, char *key, char *value) {
+struct attr *add_item(struct attr *p, char *key, struct str *value) {
     p->key = key;
     p->value = value;
     p->next = (struct attr *) malloc(sizeof(struct attr));
     return p->next;
 }
 
-char *parse_string(char buffer[], int *index_ptr) {
+struct str *parse_string(char buffer[], int *index_ptr) {
     int index = *index_ptr;
-    int condition = 1;
     int len = 0;
     int passed_column = 0;
-    char *item, *begin;
-    int count;
-    while ( condition ) {
+    struct str *result = (struct str *) malloc(sizeof(struct str));
+    char *item;
+    while ( 1 ) {
         if ( passed_column ) {
-            if ( count >= len ) {
-                break;
-            }
-            *item++ = buffer[index];
-            count++;
+            memcpy(item, buffer+index, len);
+            index += len;
+            break;
         }
         else {
             if ( buffer[index] == ':' ) {
                 passed_column = 1;
                 item = (char *) malloc(len+1);
-                begin = item;
-                count = 0;
             } 
             else {
                 len = len*10 + (buffer[index] - '0');
             }
+            index++;
         }
-        index++;
     }
-    *item++ = '\0';
-    *index_ptr = index; 
-    return begin;
+    *index_ptr = index;
+    result->length = len;
+    result->data = item;
+    return result;
 }
 
 char *parse_integer(char buffer[], int *index_ptr) {
@@ -75,16 +72,20 @@ struct attr *parse_list(struct attr *p, char buffer[], int *index_ptr, char *key
     int index = *index_ptr;
     char *value;
     index++; //move ahead of d
+    struct str *result;
     while ( buffer[index] != 'e' ) {
         // Do for integer
         if ( buffer[index] == 'i' ) {
             value = parse_integer(buffer, &index);
-            p = add_item(p, key, value);
+            result = (struct str *) malloc(sizeof(struct str));
+            result->data = value;
+            result->length = strlen(value);
+            p = add_item(p, key, result);
         }
         // Do for string
         else if ( isdigit(buffer[index]) ) {
-            value = parse_string(buffer, &index);
-            p = add_item(p, key, value);
+            result = parse_string(buffer, &index);
+            p = add_item(p, key, result);
         }
         else if ( buffer[index] == 'l' ) {
             p = parse_list(p, buffer, &index, key);
@@ -103,22 +104,26 @@ struct attr *parse_dict(struct attr *p, char buffer[], int *index_ptr) {
     char *value;
     char *key = NULL;
     index++; //move ahead of d
-
+    struct str *result;
     while ( buffer[index] != 'e' ) {
         // Do for integer
         if ( buffer[index] == 'i' ) {
             value = parse_integer(buffer, &index);
-            p = add_item(p, key, value);
+            result = (struct str *) malloc(sizeof(struct str));
+            result->data = value;
+            result->length = strlen(value);
+            p = add_item(p, key, result);
             key = NULL;
         }
         // Do for string
         else if ( isdigit(buffer[index]) ) {
             if ( key == NULL ) {
-                key = parse_string(buffer, &index);
+                result = parse_string(buffer, &index);
+                key = result->data;
             }
             else {
-                value = parse_string(buffer, &index);
-                p = add_item(p, key, value);
+                result = parse_string(buffer, &index);
+                p = add_item(p, key, result);
                 key = NULL;
             }
         }
@@ -156,12 +161,14 @@ int main(int argc, char *argv[]) {
     for ( int i = 0; i < size; i++ ) {
         printf("%c", buffer[i]);
     }
-    printf("%d\n", size);
     i = 0;
     head->next = p;
     p = parse_dict(head->next, buffer, &i);
     while ( head->next != NULL ) {
-        printf("%s: %s\n", head->next->key, head->next->value);
+        if ( strcmp(head->next->key, "pieces") == 0 ) {
+            printf("%lu\n", strlen(head->next->value->data));
+        }
+        printf("%s: %s\n", head->next->key, head->next->value->data);
         head = head->next;
     }
     return 0;
