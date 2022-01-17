@@ -57,6 +57,10 @@ char *parse_integer(char buffer[], int *index_ptr) {
     index++; //move ahead for i
     num = (char *) malloc(255);
     begin = num;
+    if ( buffer[index] == '-' ) {
+        *num++ = buffer[index];
+        index++;
+    }
     while ( isdigit(buffer[index]) ) {
         *num++ = buffer[index];
         index++;
