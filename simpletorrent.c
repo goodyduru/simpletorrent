@@ -28,7 +28,7 @@ int main(int argc, char *argv[]) {
     head->next = p;
     p = parse_dict(head, buffer, &i);
     free(p);
-    while ( head != NULL ) {
+    while ( head->next != NULL ) {
         out(head);
         head = head->next;
     }
