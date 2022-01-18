@@ -3,6 +3,7 @@
 
 #include "parser.h"
 #include "util.h"
+#include "raw.h"
 
 int main(int argc, char *argv[]) {
     FILE *fp;
@@ -31,6 +32,10 @@ int main(int argc, char *argv[]) {
     while ( head->next != NULL ) {
         out(head);
         head = head->next;
+    }
+    struct str *result = get_raw_content(buffer, 0, "info");
+    for ( int i = 0; i < result->length; i++ ) {
+        printf("%c", result->data[i]);
     }
     return 0;
 }
