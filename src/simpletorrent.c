@@ -5,6 +5,7 @@
 #include "parser.h"
 #include "util.h"
 #include "raw.h"
+#include "url.h"
 
 int main(int argc, char *argv[]) {
     FILE *fp;
@@ -38,5 +39,15 @@ int main(int argc, char *argv[]) {
     for ( int i = 0; i < result->length; i++ ) {
         printf("%c", result->data[i]);
     }
+    printf("\n");
+    unsigned char hash[SHA_DIGEST_LENGTH];
+    SHA1((unsigned char*) result->data, result->length, hash);
+    for ( int i = 0; i < SHA_DIGEST_LENGTH; i++ ) {
+        printf("%c", hash[i]);
+    }
+    printf("\n");
+
+    struct url *res = parse_url("http://bt1.archive.org:6969/announce", 36);
+    printf("%s\t%d\t%s\n", res->host_name, res->port, res->path);
     return 0;
 }
