@@ -18,7 +18,7 @@ struct url *parse_url(char *announce, int uri_length) {
     j = 0;
     struct url *result = (struct url *)malloc(sizeof(struct url));
     for ( i = 0; i < uri_length; i++ ) {
-        current = *(announce+i);
+        current = announce[i];
         // We want to strip protocol info from the url
         if ( seen_slash == 0 && current == '/' && prev == '/' ) {
             j = 0;
@@ -31,7 +31,7 @@ struct url *parse_url(char *announce, int uri_length) {
             seen_slash = 1;
         }
         // Check if colon isn't followed by slash, initialise seen_slash
-        else if ( seen_slash == 0 && current == ':' &&  seen_colon == 0 && *(announce+i+1) != '/' ) {
+        else if ( seen_slash == 0 && current == ':' &&  seen_colon == 0 && announce[i+1] != '/' ) {
             seen_colon = 1;
         }
         // Check if this is port number
@@ -55,4 +55,30 @@ struct url *parse_url(char *announce, int uri_length) {
     result->path = strdup(path);
     result->port = port;
     return result;
+}
+
+char* urlencode(char* url_string, int text_len) {
+    // allocate memory for the worst possible case (all characters need to be encoded)
+    char *encoded_url = (char *)malloc(sizeof(char)*text_len*3+1);
+    
+    const char *hex = "0123456789abcdef";
+    
+    int pos = 0;
+    char t;
+    for (int i = 0; i < text_len; i++) {
+        t = url_string[i];
+        if (isalnum(t) || t == '*'|| t == '-'||t == '.'||t == '_' ) {
+            encoded_url[pos++] = t;
+        }
+        else if ( t == ' ') {
+            encoded_url[pos++] = '+';
+        } 
+        else {
+            encoded_url[pos++] = '%';
+            encoded_url[pos++] = hex[t >> 4];
+            encoded_url[pos++] = hex[t & 15];
+        }
+    }
+    encoded_url[pos] = '\0';
+    return encoded_url;
 }
