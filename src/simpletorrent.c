@@ -35,7 +35,13 @@ int main(int argc, char *argv[]) {
         out(head);
         head = head->next;
     }
-    struct str *result = get_raw_content(buffer, 0, "info");
+    struct str *result = get_raw_content(buffer, 0, "announce");
+    for ( int i = 0; i < result->length; i++ ) {
+        printf("%c", result->data[i]);
+    }
+    printf("\n");
+
+    result = get_raw_content(buffer, 0, "info");
     for ( int i = 0; i < result->length; i++ ) {
         printf("%c", result->data[i]);
     }

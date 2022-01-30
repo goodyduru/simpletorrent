@@ -4,18 +4,63 @@
 #include <string.h>
 #include "raw.h"
 #include "parser.h"
+#include "url.h"
+#include "util.h"
+
+int raw_table_find_slot(char *key) {
+    int index = hash(key, strlen(key)) % RAW_TABLE_SIZE;
+    while ( raw_table[index] != NULL && strcmp(raw_table[index]->key, key) != 0 ) {
+        index = (index + 1) % RAW_TABLE_SIZE;
+    }
+    return index;
+}
+
+void raw_table_set(char *key, struct str *value) {
+    int index = raw_table_find_slot(key);
+    if ( raw_table[index] != NULL ) {
+        raw_table[index]->value = value;
+        return;
+    }
+    struct raw_item *item = (struct raw_item *)malloc(sizeof(struct raw_item));
+    item->key = strdup(key);
+    item->value = value;
+    raw_table[index] = item;
+}
+
+struct str *raw_table_lookup(char *key) {
+    int index = raw_table_find_slot(key);
+    if ( raw_table[index] != NULL ) {
+        return raw_table[index]->value;
+    }
+    return NULL;
+}
+
 
 struct str *get_raw_content(char buffer[], int index, char *key) {
     int i, string_len;
     int *boundaries;
     struct str *content;
     char *data;
+    content = raw_table_lookup(key);
+    if ( content != NULL ) {
+        return content;
+    }
 
-    boundaries = get_dict(buffer, &index, key);
-    content = (struct str *) malloc(sizeof(struct str));
-    string_len = boundaries[1] - boundaries[0] + 1;
-    data = (char *) malloc(sizeof(char)*string_len);
-    memcpy(data, buffer+boundaries[0], string_len);
+    //fill dictionary
+    build_table(buffer, index);
+    content = raw_table_lookup(key);
+    return content;
+}
+
+void build_table(char buffer[], int index) {
+    get_dict(buffer, &index, 0);
+}
+
+struct str *generate_str(char buffer[], int begin, int end ) {
+    struct str *content = (struct str *) malloc(sizeof(struct str));
+    int string_len = end - begin;
+    char *data = (char *) malloc(sizeof(char)*string_len);
+    memcpy(data, buffer+begin, string_len);
     content->length = string_len;
     content->data = data;
     return content;
@@ -62,7 +107,7 @@ void get_integer(char buffer[], int *index_ptr) {
     *index_ptr = index;
 }
 
-void get_list(char buffer[], int *index_ptr) {
+void get_list(char buffer[], int *index_ptr, int level) {
     int index = *index_ptr;
     char *value;
     index++; //move ahead of l
@@ -77,54 +122,80 @@ void get_list(char buffer[], int *index_ptr) {
             value = get_string(buffer, &index);
         }
         else if ( buffer[index] == 'l' ) {
-            get_list(buffer, &index);
+            get_list(buffer, &index, level+1);
         }
         else if ( buffer[index] == 'd' ) {
-            result = get_dict(buffer, &index, "list");
+            get_dict(buffer, &index, level+1);
         }
     }
     index++; //account for e
     *index_ptr = index;
 }
 
-int *get_dict(char buffer[], int *index_ptr, char* key){
+//Store first level dictionary in a hashtable.
+void get_dict(char buffer[], int *index_ptr, int level){
     int index = *index_ptr;
-    int *result = (int *) calloc(2, sizeof(int));
-    char *res;
-    int is_info = 0;
     index++; //move ahead of d
-    int *dict_result;
+    char *res = NULL;
+    char *value = NULL;
+    int begin;
+    int end;
+    struct str *content;
 
     while ( buffer[index] != 'e' ) {
         // Do for integer
         if ( buffer[index] == 'i' ) {
             get_integer(buffer, &index);
+            if ( level == 0 && res != NULL ) {
+                end = index;
+                content = generate_str(buffer, begin, end);
+                raw_table_set(res, content);
+                free(res);
+                res = NULL;
+            }
         }
         // Do for string
         else if ( isdigit(buffer[index]) ) {
-            res = get_string(buffer, &index);
-            if ( strcmp(key, res) == 0 ) {
-                is_info = 1;
-                result[0] = index;
+            value = get_string(buffer, &index);
+            if ( level == 0 ) {
+                if ( res == NULL ) {
+                    res = value;
+                    begin = index;
+                }
+                else {
+                    end = index;
+                    content = generate_str(buffer, begin, end);
+                    raw_table_set(res, content);
+                    free(res);
+                    free(value);
+                    res = NULL;
+                }
             }
             else {
-                is_info = 0;
+                free(value);
             }
-            free(res);
         }
         else if ( buffer[index] == 'l' ) {
-            get_list(buffer, &index);
+            get_list(buffer, &index, level+1);
+            if ( level == 0 && res != NULL ) {
+                end = index;
+                content = generate_str(buffer, begin, end);
+                raw_table_set(res, content);
+                free(res);
+                res = NULL;
+            }
         }
         else if ( buffer[index] == 'd' ) {
-            dict_result = get_dict(buffer, &index, key);
-            if ( is_info ) {
-                result[1] = index-1;
+            get_dict(buffer, &index, level+1);
+            if ( level == 0 && res != NULL ) {
+                end = index;
+                content = generate_str(buffer, begin, end);
+                raw_table_set(res, content);
+                free(res);
+                res = NULL;
             }
-            is_info = 0;
-            free(dict_result);
         }
     }
     index++; //account for e
     *index_ptr = index;
-    return result;
 }

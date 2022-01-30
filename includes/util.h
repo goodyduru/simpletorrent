@@ -1,2 +1,2 @@
 void out(struct attr *data);
-int hash(char *data, int data_len);
+unsigned int hash(char *data, int data_len);
