@@ -14,5 +14,5 @@ void get_dict(char buffer[], int *index_ptr, int level);
 int raw_table_find_slot(char *key);
 void raw_table_set(char *key, struct str *value);
 struct str *raw_table_lookup(char *key);
-void build_table(char buffer[], int index);
+void build_raw_table(char buffer[], int index);
 struct str *generate_str(char buffer[], int begin, int end);

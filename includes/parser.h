@@ -1,3 +1,5 @@
+#define TORRENT_TABLE_SIZE 20
+
 /**
  *  Encrypted string can contain NUL characters. This makes the string 
  * handling functions in C return wrong value e.g string length. This
@@ -8,15 +10,26 @@ struct str {
     int length;
 };
 
-struct attr {
-    char *key;
+struct decode {
     struct str *value;
-    struct attr *next;
+    struct decode *next;
 };
-int file_size(FILE *fp);
-struct attr *add_item(struct attr *p, char *key, struct str *value);
+
+struct parse_item {
+    char *key;
+    struct decode *head;
+    int count;
+};
+
+struct parse_item *decode_table[TORRENT_TABLE_SIZE];
+
 struct str *parse_string(char buffer[], int *index_ptr);
 char *parse_integer(char buffer[], int *index_ptr);
-struct attr *parse_list(struct attr *p, char buffer[], int *index_ptr, char *key);
-struct attr *parse_dict(struct attr *p, char buffer[], int *index_ptr);
-void out(struct attr *data);
+void parse_list(char buffer[], char *key, int *index_ptr);
+void parse_dict(char buffer[], int *index_ptr);
+int parser_table_find_slot(char *key);
+void parser_table_set(char *key, struct str *value);
+struct parse_item *parser_table_lookup(char *key);
+void add_value_to_node(int index, struct str *value);
+void parse();
+void concatenate_string(struct str *first, char *second, int second_len);

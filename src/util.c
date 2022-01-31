@@ -3,19 +3,34 @@
 #include <stdlib.h>
 
 #include "parser.h"
+#include "util.h"
 
-void out(struct attr *data) {
+int file_size(FILE *fp) {
+    int size;
+    fseek(fp, 0, SEEK_END);
+    size = ftell(fp);
+    fseek(fp, 0, SEEK_SET);
+    return size;
+}
+
+void out(struct parse_item *item) {
     int i = 0;
-    if ( data->value->length == strlen(data->value->data) ) {
-        printf("%s: %s\n", data->key, data->value->data);
+    struct decode *current;
+    current = item->head;
+    while ( i < item->count ) {
+        printf("%s: \t", item->key);
+        echo(current->value);
+        current = current->next;
+        i++;
     }
-    else {
-        printf("%s: ", data->key);
-        while ( i < data->value->length ) {
-            printf("%c", data->value->data[i++]);
-        }
-        printf("\n");
+}
+
+void echo(struct str *string) {
+    int i = 0;
+    while ( i < string->length ) {
+        printf("%c", string->data[i++]);
     }
+    printf("\n");
 }
 
 

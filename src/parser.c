@@ -3,23 +3,114 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "raw.h"
 #include "parser.h"
+#include "util.h"
 
-#define MAX_LINE = 2000
-
-int file_size(FILE *fp) {
-    int size;
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    return size;
+int parser_table_find_slot(char *key) {
+    int index = hash(key, strlen(key)) % TORRENT_TABLE_SIZE;
+    while ( decode_table[index] != NULL && strcmp(decode_table[index]->key, key) != 0 ) {
+        index = (index + 1) % TORRENT_TABLE_SIZE;
+    }
+    return index;
 }
 
-struct attr *add_item(struct attr *p, char *key, struct str *value) {
-    p->key = key;
-    p->value = value;
-    p->next = (struct attr *) malloc(sizeof(struct attr));
-    return p->next;
+void parser_table_set(char *key, struct str *value) {
+    int index = parser_table_find_slot(key);
+    if ( decode_table[index] != NULL ) {
+        add_value_to_node(index, value);
+        return;
+    }
+    struct decode *head = (struct decode *)malloc(sizeof(struct decode));
+    head->value = value;
+    head->next = NULL;
+    struct parse_item *item = (struct parse_item *)malloc(sizeof(struct parse_item));
+    item->key = strdup(key);
+    item->count = 1;
+    item->head = head;
+    decode_table[index] = item;
+}
+
+void add_value_to_node(int index, struct str *value) {
+    struct parse_item *item;
+    struct decode *current, *next;
+
+    item = decode_table[index];
+    current = item->head;
+    while ( current->next != NULL ) {
+        current = current->next;
+    }
+    next = (struct decode *)malloc(sizeof(struct decode));
+    next->value = value;
+    next->next = NULL;
+    current->next = next;
+    item->count++;
+}
+
+struct parse_item *parser_table_lookup(char *key) {
+    int index = parser_table_find_slot(key);
+    if ( decode_table[index] != NULL ) {
+        return decode_table[index];
+    }
+    return NULL;
+}
+
+
+void parse_table_item(struct raw_item *item) {
+    char *parsed_value;
+    struct str *result;
+    char *string = item->value->data;
+    char type = *string;
+    int begin = 0;
+    if ( type == 'i' ) { // This is an integer
+        parsed_value = parse_integer(string, &begin);
+        result = (struct str *) malloc(sizeof(struct str));
+        result->data = parsed_value;
+        result->length = strlen(parsed_value);
+        parser_table_set(item->key, result);
+    }
+    else if ( isdigit(type) ) {
+        result = parse_string(string, &begin);
+        parser_table_set(item->key, result);
+    }
+    else if ( type == 'l' ) {
+        parse_list(string, item->key, &begin);
+    }
+    else {
+        parse_dict(string, &begin);
+    }
+
+}
+
+void parse(){
+    struct raw_item *item;
+    for ( int i = 0; i < RAW_TABLE_SIZE; i++ ) {
+        if ( raw_table[i] != NULL ) {
+            item = raw_table[i];
+            parse_table_item(item);
+        }
+    }
+}
+
+char *parse_integer(char buffer[], int *index_ptr) {
+    char *num, *begin;
+    int index = *index_ptr;
+    index++; //move ahead for i
+    num = (char *) malloc(255);
+    begin = num;
+    if ( buffer[index] == '-' ) {
+        *num++ = buffer[index];
+        index++;
+    }
+    while ( isdigit(buffer[index]) ) {
+        *num++ = buffer[index];
+        index++;
+    }
+    *num = '\0';
+    //For e
+    index++;
+    *index_ptr = index;
+    return begin;
 }
 
 struct str *parse_string(char buffer[], int *index_ptr) {
@@ -51,59 +142,75 @@ struct str *parse_string(char buffer[], int *index_ptr) {
     return result;
 }
 
-char *parse_integer(char buffer[], int *index_ptr) {
-    char *num, *begin;
-    int index = *index_ptr;
-    index++; //move ahead for i
-    num = (char *) malloc(255);
-    begin = num;
-    if ( buffer[index] == '-' ) {
-        *num++ = buffer[index];
-        index++;
-    }
-    while ( isdigit(buffer[index]) ) {
-        *num++ = buffer[index];
-        index++;
-    }
-    *num = '\0';
-    //For e
-    index++;
-    *index_ptr = index;
-    return begin;
-}
-
-struct attr *parse_list(struct attr *p, char buffer[], int *index_ptr, char *key) {
-    int index = *index_ptr;
+void parse_list(char buffer[], char *key, int *index_ptr) {
     char *value;
-    index++; //move ahead of d
-    struct str *result;
+    int index = *index_ptr;
+    index++; //move ahead of l
+    struct str *result, *origin;
+    //Initialize origin if key is path
+    if ( strcmp(key, "path") == 0 ) {
+        origin = (struct str *) malloc(sizeof(struct str));
+    }
     while ( buffer[index] != 'e' ) {
         // Do for integer
         if ( buffer[index] == 'i' ) {
             value = parse_integer(buffer, &index);
-            result = (struct str *) malloc(sizeof(struct str));
-            result->data = value;
-            result->length = strlen(value);
-            p = add_item(p, key, result);
+            if ( strcmp(key, "path") == 0 ) {
+                concatenate_string(origin, value, strlen(value));
+            }
+            else {
+                result = (struct str *) malloc(sizeof(struct str));
+                result->data = value;
+                result->length = strlen(value);
+                parser_table_set(key, result);
+            }
         }
         // Do for string
         else if ( isdigit(buffer[index]) ) {
             result = parse_string(buffer, &index);
-            p = add_item(p, key, result);
+            if ( strcmp(key, "path") == 0 ) {
+                concatenate_string(origin, result->data, result->length);
+                free(result);
+            }
+            else {
+                parser_table_set(key, result);
+            }
         }
         else if ( buffer[index] == 'l' ) {
-            p = parse_list(p, buffer, &index, key);
+            parse_list(buffer, key, &index);
         }
         else if ( buffer[index] == 'd' ) {
-            p = parse_dict(p, buffer, &index);
+            parse_dict(buffer, &index);
         }
+    }
+
+    if ( strcmp(key, "path") == 0 ) {
+        parser_table_set(key, origin);
     }
     index++; //account for e
     *index_ptr = index;
-    return p;
 }
 
-struct attr *parse_dict(struct attr *p, char buffer[], int *index_ptr) {
+void concatenate_string(struct str *first, char *second, int second_len) {
+    char *result;
+    int i;
+    if ( first->data == NULL ) {
+        first->data = second;
+        first->length = second_len;
+        return;
+    }
+    result = realloc(first->data, (first->length+second_len+2) * sizeof(char));
+    result[first->length] = '/';
+    for ( i = 0; i < second_len; i++ ) {
+        result[first->length+i+1] = second[i];
+    }
+    result[first->length+second_len+1] = '\0';
+    first->data = result;
+    first->length += second_len;
+    first->length += 2;
+}
+
+void parse_dict(char buffer[], int *index_ptr) {
     int index = *index_ptr;
     char *value;
     char *key = NULL;
@@ -116,7 +223,8 @@ struct attr *parse_dict(struct attr *p, char buffer[], int *index_ptr) {
             result = (struct str *) malloc(sizeof(struct str));
             result->data = value;
             result->length = strlen(value);
-            p = add_item(p, key, result);
+            parser_table_set(key, result);
+            free(key);
             key = NULL;
         }
         // Do for string
@@ -127,20 +235,22 @@ struct attr *parse_dict(struct attr *p, char buffer[], int *index_ptr) {
             }
             else {
                 result = parse_string(buffer, &index);
-                p = add_item(p, key, result);
+                parser_table_set(key, result);
+                free(key);
                 key = NULL;
             }
         }
         else if ( buffer[index] == 'l' ) {
-            p = parse_list(p, buffer, &index, key);
+            parse_list(buffer, key, &index);
+            free(key);
             key = NULL;
         }
         else if ( buffer[index] == 'd' ) {
-            p = parse_dict(p, buffer, &index);
+            parse_dict(buffer, &index);
+            free(key);
             key = NULL;
         }
     }
     index++; //account for e
     *index_ptr = index;
-    return p;
 }

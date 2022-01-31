@@ -47,12 +47,12 @@ struct str *get_raw_content(char buffer[], int index, char *key) {
     }
 
     //fill dictionary
-    build_table(buffer, index);
+    build_raw_table(buffer, index);
     content = raw_table_lookup(key);
     return content;
 }
 
-void build_table(char buffer[], int index) {
+void build_raw_table(char buffer[], int index) {
     get_dict(buffer, &index, 0);
 }
 

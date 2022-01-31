@@ -13,8 +13,6 @@ int main(int argc, char *argv[]) {
     char *prog = argv[0];
     int size;
     int i = 0;
-    struct attr *head = (struct attr *) malloc(sizeof(struct attr));
-    struct attr *p = (struct attr *) malloc(sizeof(struct attr));
     if ( (fp = fopen(file_name, "rb")) == NULL ) {
         fprintf(stderr, "%s: can't open %s", prog, file_name);
         exit(1);
@@ -27,14 +25,6 @@ int main(int argc, char *argv[]) {
         printf("%c", buffer[i]);
     }
     printf("\n");
-    i = 0;
-    head->next = p;
-    p = parse_dict(head, buffer, &i);
-    free(p);
-    while ( head->next != NULL ) {
-        out(head);
-        head = head->next;
-    }
     struct str *result = get_raw_content(buffer, 0, "announce");
     for ( int i = 0; i < result->length; i++ ) {
         printf("%c", result->data[i]);
@@ -46,6 +36,17 @@ int main(int argc, char *argv[]) {
         printf("%c", result->data[i]);
     }
     printf("\n");
+    
+    parse();
+    struct parse_item *item = parser_table_lookup("path");
+    out(item);
+    printf("%d\n", item->count);
+    item = parser_table_lookup("length");
+    printf("%d\n", item->count);
+    item = parser_table_lookup("crc32");
+    printf("%d\n", item->count);
+    item = parser_table_lookup("piece length");
+    out(item);
     unsigned char hash[SHA_DIGEST_LENGTH];
     SHA1((unsigned char*) result->data, result->length, hash);
     for ( int i = 0; i < SHA_DIGEST_LENGTH; i++ ) {
