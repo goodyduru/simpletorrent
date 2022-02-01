@@ -54,8 +54,8 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
 
-    struct url *res = parse_url("http://bt1.archive.org:6969/announce", 36);
-    printf("%s\t%d\t%s\n", res->host_name, res->port, res->path);
+    struct url *res = parse_url("bt1.archive.org:6969/announce", 36);
+    printf("%s\t%s\t%s\n", res->host_name, res->port, res->path);
 
     char *url_encoded = urlencode("http://bt1.archive.org:6969/announce", 36);
     printf("%s\n", url_encoded);

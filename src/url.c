@@ -4,18 +4,13 @@
 
 #include "url.h"
 
-#define PATH_LENGTH 1831
-#define HOST_NAME_LENGTH 254
-#define BT_PORT 6969
-
 struct url *parse_url(char *announce, int uri_length) {
-    int i, j, seen_slash, seen_colon, port_length;
+    int i, j, k, seen_slash, seen_colon;
     char prev, current;
     char host_name[HOST_NAME_LENGTH];
     char path[PATH_LENGTH];
-    int port = 0;
-    port_length = 0, seen_slash = 0, seen_colon = 0;
-    j = 0;
+    char port[PORT_LENGTH];
+    seen_slash = 0, seen_colon = 0, j = 0; k = 0;
     struct url *result = (struct url *)malloc(sizeof(struct url));
     for ( i = 0; i < uri_length; i++ ) {
         current = announce[i];
@@ -36,8 +31,7 @@ struct url *parse_url(char *announce, int uri_length) {
         }
         // Check if this is port number
         else if ( seen_slash == 0 && seen_colon == 1 && isdigit(current) ) {
-            port_length++;
-            port = port*10 + (current - '0');
+            port[k++] = current;
         }
         // Add to hostname
         else if ( seen_slash == 0 ) {
@@ -50,10 +44,10 @@ struct url *parse_url(char *announce, int uri_length) {
         prev = current;
     }
     path[j] = '\0';
-    port = (port == 0) ? BT_PORT : port;
+    port[k++] = '\0';
     result->host_name = strdup(host_name);
     result->path = strdup(path);
-    result->port = port;
+    result->port = (k == 1) ? "6969" : strdup(port);
     return result;
 }
 
