@@ -59,7 +59,7 @@ void urlencode_table_init() {
     }
 }
 
-char* urlencode(char* url_string, int text_len) {
+char* urlencode(unsigned char* url_string, int text_len) {
     // allocate memory for the worst possible case (all characters need to be encoded)
     char *encoded_url = (char *)malloc(sizeof(char)*text_len*3+1);
     char *begin = encoded_url;

@@ -15,5 +15,5 @@ struct url {
 
 struct url *parse_url(char *uri, int uri_length);
 void urlencode_table_init();
-char* urlencode(char* url_string, int text_len);
+char* urlencode(unsigned char* url_string, int text_len);
 #endif
