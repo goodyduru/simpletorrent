@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -51,28 +52,24 @@ struct url *parse_url(char *announce, int uri_length) {
     return result;
 }
 
+void urlencode_table_init() {
+    int i;
+    for ( i = 0; i < 256; i++ ) {
+        html5[i] = isalnum(i) || i == '*' || i == '-' || i == '.' || i == '_' ? i : ( i == ' ') ? '+' : 0;
+    }
+}
+
 char* urlencode(char* url_string, int text_len) {
     // allocate memory for the worst possible case (all characters need to be encoded)
     char *encoded_url = (char *)malloc(sizeof(char)*text_len*3+1);
-    
-    const char *hex = "0123456789abcdef";
-    
-    int pos = 0;
-    char t;
-    for (int i = 0; i < text_len; i++) {
-        t = url_string[i];
-        if (isalnum(t) || t == '*'|| t == '-'||t == '.'||t == '_' ) {
-            encoded_url[pos++] = t;
-        }
-        else if ( t == ' ') {
-            encoded_url[pos++] = '+';
-        } 
-        else {
-            encoded_url[pos++] = '%';
-            encoded_url[pos++] = hex[t >> 4];
-            encoded_url[pos++] = hex[t & 15];
-        }
+    char *begin = encoded_url;
+    if ( !html5['a' - 0] ) {
+        urlencode_table_init();
     }
-    encoded_url[pos] = '\0';
+    for ( int i = 0; i < text_len; i++ ) {
+        if ( html5[url_string[i]] ) *begin = html5[url_string[i]];
+        else sprintf(begin, "%%%02X", url_string[i]);
+        while (*++begin);
+    }
     return encoded_url;
 }
