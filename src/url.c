@@ -59,17 +59,21 @@ void urlencode_table_init() {
     }
 }
 
-char* urlencode(unsigned char* url_string, int text_len) {
+char* urlencode(unsigned char* url_string, int text_len, char *encoded_url) {
     // allocate memory for the worst possible case (all characters need to be encoded)
-    char *encoded_url = (char *)malloc(sizeof(char)*text_len*3+1);
     char *begin = encoded_url;
-    if ( !html5['a' - 0] ) {
+    if ( !html5['a'] ) {
         urlencode_table_init();
     }
     for ( int i = 0; i < text_len; i++ ) {
-        if ( html5[url_string[i]] ) *begin = html5[url_string[i]];
-        else sprintf(begin, "%%%02X", url_string[i]);
-        while (*++begin);
+        if ( html5[url_string[i]] ) {
+            *(begin++) = html5[url_string[i]];
+        }
+        else {
+            snprintf(begin, 4, "%%%02X", url_string[i]);
+            begin += 3;
+        }
     }
+    *begin = '\0';
     return encoded_url;
 }

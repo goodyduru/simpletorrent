@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <time.h>
 
 #include "parser.h"
 #include "util.h"
@@ -19,20 +20,19 @@ void out(struct parse_item *item) {
     current = item->head;
     while ( i < item->count ) {
         printf("%s: \t", item->key);
-        echo(current->value);
+        echo(current->value->data, current->value->length);
         current = current->next;
         i++;
     }
 }
 
-void echo(struct str *string) {
+void echo(char *string, int str_length) {
     int i = 0;
-    while ( i < string->length ) {
-        printf("%c", string->data[i++]);
+    while ( i < str_length ) {
+        printf("%c", string[i++]);
     }
     printf("\n");
 }
-
 
 unsigned int hash(char *data, int data_len) {
     if ( data == NULL || data_len == 0 ) {
@@ -45,4 +45,16 @@ unsigned int hash(char *data, int data_len) {
         h ^= *dp;
     }
     return h;
+}
+
+char *generate_string(int string_length) {
+    char *result, *begin;
+    char choices[] = "abcdefghijklmnopqrstuvwxyz0123456789";
+    result = (char *) malloc(string_length*sizeof(char));
+    begin = result;
+    srand(time(0));
+    for ( int i = 0; i < string_length; i++ ) {
+        *result++ = choices[rand() % 36];
+    }
+    return begin;
 }

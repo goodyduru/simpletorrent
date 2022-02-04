@@ -6,6 +6,7 @@
 #include "util.h"
 #include "raw.h"
 #include "url.h"
+#include "tracker.h"
 
 int main(int argc, char *argv[]) {
     FILE *fp;
@@ -51,13 +52,13 @@ int main(int argc, char *argv[]) {
     SHA1((unsigned char*) result->data, result->length, hash);
     for ( int i = 0; i < SHA_DIGEST_LENGTH; i++ ) {
         printf("%c", hash[i]);
+        printf("%c", '/');
     }
     printf("\n");
 
-    struct url *res = parse_url("bt1.archive.org:6969/announce", 36);
+    struct url *res = parse_url("bt1.archive.org:6779/announce", 36);
     printf("%s\t%s\t%s\n", res->host_name, res->port, res->path);
 
-    char *url_encoded = urlencode("http://bt1.archive.org:6969/announce", 36);
-    printf("%s\n", url_encoded);
+    send_request();
     return 0;
 }
