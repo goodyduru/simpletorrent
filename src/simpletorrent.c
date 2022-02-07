@@ -26,13 +26,13 @@ int main(int argc, char *argv[]) {
         printf("%c", buffer[i]);
     }
     printf("\n");
-    struct str *result = get_raw_content(buffer, 0, "announce");
+    struct str *result = get_raw_content(buffer, 0, "announce", raw_table, RAW_TABLE_SIZE);
     for ( int i = 0; i < result->length; i++ ) {
         printf("%c", result->data[i]);
     }
     printf("\n");
 
-    result = get_raw_content(buffer, 0, "info");
+    result = get_raw_content(buffer, 0, "info", raw_table, RAW_TABLE_SIZE);
     for ( int i = 0; i < result->length; i++ ) {
         printf("%c", result->data[i]);
     }

@@ -32,7 +32,7 @@ struct url *get_url() {
 }
 
 unsigned char* get_info_hash() {
-    struct str *info = raw_table_lookup("info");
+    struct str *info = raw_table_lookup("info", raw_table, RAW_TABLE_SIZE);
     unsigned char *hash = (unsigned char *) malloc(SHA_DIGEST_LENGTH*sizeof(unsigned char));
     SHA1((unsigned char *)info->data, info->length, hash);
     return hash;
