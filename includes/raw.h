@@ -1,3 +1,5 @@
+#ifndef RAW_HASH_TABLE
+#define RAW_HASH_TABLE
 #define RAW_TABLE_SIZE 10
 #define TRACKER_RAW_RESPONSE_SIZE 8
 
@@ -18,3 +20,4 @@ void raw_table_set(char *key, struct str *value, struct raw_item *table[], int t
 struct str *raw_table_lookup(char *key, struct raw_item *table[], int table_size);
 void build_raw_table(char buffer[], int index, struct raw_item *table[], int table_size);
 struct str *generate_str(char buffer[], int begin, int end);
+#endif

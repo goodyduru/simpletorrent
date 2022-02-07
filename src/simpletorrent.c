@@ -38,15 +38,15 @@ int main(int argc, char *argv[]) {
     }
     printf("\n");
     
-    parse();
-    struct parse_item *item = parser_table_lookup("path");
+    parse(raw_table, RAW_TABLE_SIZE, decode_table, TORRENT_TABLE_SIZE);
+    struct parse_item *item = parser_table_lookup("path", decode_table, TORRENT_TABLE_SIZE);
     out(item);
     printf("%d\n", item->count);
-    item = parser_table_lookup("length");
+    item = parser_table_lookup("length", decode_table, TORRENT_TABLE_SIZE);
     printf("%d\n", item->count);
-    item = parser_table_lookup("crc32");
+    item = parser_table_lookup("crc32", decode_table, TORRENT_TABLE_SIZE);
     printf("%d\n", item->count);
-    item = parser_table_lookup("piece length");
+    item = parser_table_lookup("piece length", decode_table, TORRENT_TABLE_SIZE);
     out(item);
     unsigned char hash[SHA_DIGEST_LENGTH];
     SHA1((unsigned char*) result->data, result->length, hash);

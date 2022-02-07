@@ -25,7 +25,7 @@ void send_request(){
 }
 
 struct url *get_url() {
-    struct parse_item *announce = parser_table_lookup("announce");
+    struct parse_item *announce = parser_table_lookup("announce", decode_table, TORRENT_TABLE_SIZE);
     char *url_str = announce->head->value->data;
     int url_length = announce->head->value->length;
     return parse_url(url_str, url_length);
@@ -39,8 +39,8 @@ unsigned char* get_info_hash() {
 }
 
 long get_left() {
-    struct parse_item *pieces = parser_table_lookup("pieces");
-    struct parse_item *piece_size = parser_table_lookup("piece length");
+    struct parse_item *pieces = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
+    struct parse_item *piece_size = parser_table_lookup("piece length", decode_table, TORRENT_TABLE_SIZE);
     int total_piece_length = pieces->head->value->length;
     int num_pieces = total_piece_length / HASHED_PIECE_LENGTH;
     return num_pieces * atoi(piece_size->head->value->data);
