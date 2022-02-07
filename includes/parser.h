@@ -1,7 +1,7 @@
 #include "raw.h"
 
 #define TORRENT_TABLE_SIZE 20
-#define TRACKER_RESPONSE_SIZE 8
+#define TRACKER_RESPONSE_SIZE 12
 
 /**
  *  Encrypted string can contain NUL characters. This makes the string 

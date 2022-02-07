@@ -12,3 +12,4 @@ void copy_param(char *param, int *param_length, char *src, int src_length);
 char *itoa(int number);
 char *get(struct url *uri, char *param);
 void *get_in_addr(struct sockaddr *sa);
+char *parse_response(char *response);

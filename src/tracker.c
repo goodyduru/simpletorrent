@@ -22,6 +22,15 @@ void send_request(){
     char *peer_id = generate_string(20);
     char *param = generate_param(tracker_url->path, peer_id);
     char *result = get(tracker_url, param);
+    char *body = parse_response(result);
+    if ( body == NULL ) {
+        return;
+    }
+    struct str *complete = get_raw_content(body, 0, "complete", raw_tracker_response_table, TRACKER_RAW_RESPONSE_SIZE);
+    echo(complete->data, complete->length);
+    parse(raw_tracker_response_table, TRACKER_RAW_RESPONSE_SIZE, tracker_response_table, TRACKER_RESPONSE_SIZE);
+    struct parse_item *incomplete = parser_table_lookup("incomplete", tracker_response_table, TRACKER_RESPONSE_SIZE);
+    out(incomplete);
 }
 
 struct url *get_url() {
@@ -282,4 +291,36 @@ char *get(struct url *uri, char *param) {
 
 void *get_in_addr(struct sockaddr *sa) {
     return &(((struct sockaddr_in *)sa)->sin_addr);
+}
+
+char *parse_response(char *response) {
+    int response_length = strlen(response);
+    char status_code[4], prev, current, *content, *begin;
+    int i = 0, j = 0;
+    //get to status code
+    while ( i < response_length && response[i++] != ' ' );
+    //get status code
+    while ( i < response_length && j < 3 ) {
+        status_code[j++] = response[i++];
+    }
+    status_code[j] = '\0';
+    // check status code
+    if ( strcmp(status_code, "200") != 0 ) {
+        return NULL;
+    }
+
+    // get to content
+    prev = response[i];
+    current = response[++i];
+    // check for simultaneous carriage returns i.e if we have \r\n\r\n, prev will be \n and current will be \r
+    while ( i < response_length && !(prev == '\n' && current == '\r') ) {
+        prev = current;
+        current = response[i++];
+    }
+    content = (char *) malloc((response_length - i + 2)*sizeof(char));
+    begin = content;
+    // used prefix because the current character is \n and want to skip that.
+    while ( i < response_length && (*begin++ = response[++i]) != EOF );
+    *begin = '\0';
+    return content;
 }
