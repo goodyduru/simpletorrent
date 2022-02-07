@@ -58,9 +58,10 @@ void build_raw_table(char buffer[], int index, struct raw_item *table[], int tab
 
 struct str *generate_str(char buffer[], int begin, int end ) {
     struct str *content = (struct str *) malloc(sizeof(struct str));
-    int string_len = end - begin;
+    int string_len = end - begin + 1;
     char *data = (char *) malloc(sizeof(char)*string_len);
-    memcpy(data, buffer+begin, string_len);
+    memcpy(data, buffer+begin, string_len - 1);
+    data[string_len-1] = '\0';
     content->length = string_len;
     content->data = data;
     return content;

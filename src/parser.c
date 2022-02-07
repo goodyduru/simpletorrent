@@ -136,6 +136,7 @@ struct str *parse_string(char buffer[], int *index_ptr) {
             index++;
         }
     }
+    item[len] = '\0';
     *index_ptr = index;
     result->length = len;
     result->data = item;

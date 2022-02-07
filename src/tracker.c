@@ -22,15 +22,18 @@ void send_request(){
     char *peer_id = generate_string(20);
     char *param = generate_param(tracker_url->path, peer_id);
     char *result = get(tracker_url, param);
+    free(param);
     char *body = parse_response(result);
+    free(result);
     if ( body == NULL ) {
         return;
     }
     struct str *complete = get_raw_content(body, 0, "complete", raw_tracker_response_table, TRACKER_RAW_RESPONSE_SIZE);
+    free(body);
     echo(complete->data, complete->length);
     parse(raw_tracker_response_table, TRACKER_RAW_RESPONSE_SIZE, tracker_response_table, TRACKER_RESPONSE_SIZE);
-    struct parse_item *incomplete = parser_table_lookup("incomplete", tracker_response_table, TRACKER_RESPONSE_SIZE);
-    out(incomplete);
+    struct parse_item *min_interval = parser_table_lookup("min interval", tracker_response_table, TRACKER_RESPONSE_SIZE);
+    out(min_interval);
 }
 
 struct url *get_url() {
