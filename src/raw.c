@@ -29,8 +29,8 @@ void raw_table_set(char *key, struct str *value, struct raw_item *table[], int t
 
 struct str *raw_table_lookup(char *key, struct raw_item *table[], int table_size) {
     int index = raw_table_find_slot(key, table, table_size);
-    if ( raw_table[index] != NULL ) {
-        return raw_table[index]->value;
+    if ( table[index] != NULL ) {
+        return table[index]->value;
     }
     return NULL;
 }

@@ -1,5 +1,5 @@
 #define RAW_TABLE_SIZE 10
-#define TRACKER_RESPONSE_TABLE 8
+#define TRACKER_RAW_RESPONSE_SIZE 8
 
 struct raw_item {
     char *key;
@@ -7,7 +7,7 @@ struct raw_item {
 };
 
 struct raw_item *raw_table[RAW_TABLE_SIZE];
-struct raw_item *raw_tracker_response_table[TRACKER_RESPONSE_TABLE];
+struct raw_item *raw_tracker_response_table[TRACKER_RAW_RESPONSE_SIZE];
 struct str *get_raw_content(char buffer[], int index, char *key, struct raw_item *table[], int table_size);
 void get_integer(char buffer[], int *index_ptr);
 char *get_string(char buffer[], int *index_ptr);
