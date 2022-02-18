@@ -1,12 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <openssl/sha.h>
 
 #include "parser.h"
 #include "util.h"
 #include "raw.h"
 #include "url.h"
 #include "tracker.h"
+#include "peer.h"
 
 int main(int argc, char *argv[]) {
     FILE *fp;
@@ -48,17 +48,11 @@ int main(int argc, char *argv[]) {
     printf("%d\n", item->count);
     item = parser_table_lookup("piece length", decode_table, TORRENT_TABLE_SIZE);
     out(item);
-    unsigned char hash[SHA_DIGEST_LENGTH];
-    SHA1((unsigned char*) result->data, result->length, hash);
-    for ( int i = 0; i < SHA_DIGEST_LENGTH; i++ ) {
-        printf("%c", hash[i]);
-        printf("%c", '/');
-    }
-    printf("\n");
 
     struct url *res = parse_url("bt1.archive.org:6779/announce", 36);
     printf("%s\t%s\t%s\n", res->host_name, res->port, res->path);
 
     send_request();
+    parse_peer();
     return 0;
 }
