@@ -260,7 +260,6 @@ char *get(struct url *uri, char *param) {
         }
     }
     fread(response, 1, received, stream);
-    close(sockfd);
     fclose(stream);
     printf("Response:\n%s\n", response);
     return response;
