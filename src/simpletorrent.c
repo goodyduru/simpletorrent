@@ -18,7 +18,7 @@ int main(int argc, char *argv[]) {
         fprintf(stderr, "%s: can't open %s", prog, file_name);
         exit(1);
     }
-    size = file_size(fp);
+    size = file_size(file_name);
     char buffer[size];
 
     fread(buffer, 1, sizeof buffer, fp);

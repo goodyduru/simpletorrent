@@ -2,16 +2,15 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <sys/stat.h>
 
 #include "parser.h"
 #include "util.h"
 
-int file_size(FILE *fp) {
-    int size;
-    fseek(fp, 0, SEEK_END);
-    size = ftell(fp);
-    fseek(fp, 0, SEEK_SET);
-    return size;
+int file_size(char *filename) {
+    struct stat sbuf;
+    stat(filename, &sbuf);
+    return (int) sbuf.st_size;
 }
 
 void out(struct parse_item *item) {
