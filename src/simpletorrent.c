@@ -21,7 +21,7 @@ int main(int argc, char *argv[]) {
     size = file_size(fp);
     char buffer[size];
 
-    fread(buffer, sizeof(buffer), 1, fp);
+    fread(buffer, 1, sizeof buffer, fp);
     for ( int i = 0; i < size; i++ ) {
         printf("%c", buffer[i]);
     }

@@ -1,3 +1,4 @@
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
@@ -180,33 +181,9 @@ void copy_param(char *param, int *param_length, char *src, int src_length) {
 
 char *itoa(int number) {
     char *figures;
-    if ( number == 0 ) {
-        figures = malloc(2*sizeof(char));
-        figures[0] = '0';
-        figures[1] = '\0';
-        return figures;
-    }
-    char temp;
-    figures = malloc(255 * sizeof(char));
-    int i = 0, j = 0, k = 0;
-    while ( (number / 10) > 0 ) {
-        figures[i++] = (number % 10) + '0';
-        number /= 10;
-    }
-    if ( number > 0 ) {
-        figures[i++] = (number % 10) + '0';
-    }
-    figures[i] = '\0';
-    //Reverse string
-    k = strlen(figures) - 1;
-    while ( j < k ) {
-        temp = figures[j];
-        figures[j] = figures[k];
-        figures[k] = figures[j];
-        j++;
-        k--;
-    }
-    figures[i] = '\0';
+    int length = (number == 0 || number == 1) ? 2 : (int)ceil(log10(number)) + 1;
+    figures = malloc(length*sizeof(char));
+    sprintf(figures, "%d", number);
     return figures;
 }
 
