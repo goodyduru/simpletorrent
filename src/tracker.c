@@ -22,10 +22,8 @@ void send_request(){
     struct url *tracker_url = get_url();
     char *peer_id = generate_string(20);
     char *param = generate_param(tracker_url->path, peer_id);
-    char *result = get(tracker_url, param);
+    char *body = get(tracker_url, param);
     free(param);
-    char *body = parse_response(result);
-    free(result);
     if ( body == NULL ) {
         return;
     }
@@ -190,11 +188,11 @@ char *itoa(int number) {
 char *get(struct url *uri, char *param) {
     struct addrinfo hints, *servinfo, *p;
     int sockfd;
-    int rv, total, sent, received, bytes;
+    int rv, total, sent, received, bytes, status;
     char s[INET_ADDRSTRLEN];
+    FILE *stream;
     char *message_fmt = "GET %s HTTP/1.1\r\n\r\n";
-    char message[1024], *response;
-    response = (char *) malloc(4096 * sizeof(char));
+    char message[BUFSIZ], *response, *length;
 
     memset(&hints, 0, sizeof hints);
     hints.ai_family = AF_INET;
@@ -229,78 +227,45 @@ char *get(struct url *uri, char *param) {
 
     freeaddrinfo(servinfo);
 
-    sprintf(message, message_fmt, param);
-    total = strlen(message);
-    sent = 0;
-    do {
-        bytes = write(sockfd, message+sent, total-sent);
-        if ( bytes < 0 ) {
-            perror("Error writing to socket\n");
-            return NULL;
-        }
-        if ( bytes == 0 ) {
-            break;
-        }
-        sent += bytes;
-    } while ( sent < total );
-
-    memset(response, 0, 4096);
-    total = 4095;
-    received = 0;
-
-    do {
-        bytes = read(sockfd, response+received, total-received);
-        if ( bytes < 0 ) {
-            perror("Error reading from socket");
-            return NULL;
-        }
-        if ( bytes == 0 ) {
-            break;
-        }
-        received += bytes;
-    } while ( received < total );
-
-    if ( received == total ) {
-        perror("Error storing complete response from socket");
+    //send request
+    stream = fdopen(sockfd, "r+");
+    if ( (sent = fprintf(stream, message_fmt, param)) < 0 || (sent = fflush(stream)) < 0 ) {
+        perror("Error writing to socket");
         return NULL;
     }
+
+    //reception
+    fgets(message, BUFSIZ, stream);
+    sscanf(message, "%*s %d %*s", &status);
+    if ( status != 200 ) {
+        perror("No 200 response");
+        return NULL;
+    }
+    while (1) {
+        fgets(message, BUFSIZ, stream);
+        //if empty, just stop
+        if ( strcmp(message, "") == 0 ) {
+            perror("No Content Length was included");
+            return NULL;
+        }
+        length = strstr(message, "Content-Length:");
+        if ( length ) {
+            sscanf(length, "%*s %d\r\n", &received);
+            response = (char *)malloc(sizeof(char)*received);
+            continue;
+        }
+        //read to end of headers
+        if ( strcmp(message, "\r\n") == 0 ) {
+            break;
+        }
+    }
+    fread(response, 1, received, stream);
     close(sockfd);
+    fclose(stream);
     printf("Response:\n%s\n", response);
     return response;
 }
 
 void *get_in_addr(struct sockaddr *sa) {
     return &(((struct sockaddr_in *)sa)->sin_addr);
-}
-
-char *parse_response(char *response) {
-    int response_length = strlen(response);
-    char status_code[4], prev, current, *content, *begin;
-    int i = 0, j = 0;
-    //get to status code
-    while ( i < response_length && response[i++] != ' ' );
-    //get status code
-    while ( i < response_length && j < 3 ) {
-        status_code[j++] = response[i++];
-    }
-    status_code[j] = '\0';
-    // check status code
-    if ( strcmp(status_code, "200") != 0 ) {
-        return NULL;
-    }
-
-    // get to content
-    prev = response[i];
-    current = response[++i];
-    // check for simultaneous carriage returns i.e if we have \r\n\r\n, prev will be \n and current will be \r
-    while ( i < response_length && !(prev == '\n' && current == '\r') ) {
-        prev = current;
-        current = response[i++];
-    }
-    content = (char *) malloc((response_length - i + 2)*sizeof(char));
-    begin = content;
-    // used prefix because the current character is \n and want to skip that.
-    while ( i < response_length && (*begin++ = response[++i]) != EOF );
-    *begin = '\0';
-    return content;
 }
