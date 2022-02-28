@@ -83,7 +83,7 @@ char *get_ip() {
 char *generate_param(char *path, char *peer_id) {
     char ch;
     int j;
-    char *para, *item, *param_encode;
+    char *hash_encode, *peer_encode;
     unsigned char *info_hash = get_info_hash();
     char *port = MY_PORT;
     int uploaded = 0;
@@ -105,84 +105,17 @@ char *generate_param(char *path, char *peer_id) {
         "&ip=",
     };
     char *param = (char *)malloc(sizeof(char)*PATH_LENGTH);
-    //copy path
-    while ( (ch = *path++) != '\0' ) {
-        param[param_length++] = ch;
-    }
-    param[param_length++] = '?';
-    for ( int i = 0; i < 9; i++ ) {
-        para = param_array[i];
-        while ( (ch = *para++) != '\0' ) {
-            param[param_length++] = ch;
-        }
-        //Copy sha1 hash
-        if ( i == 0 ) {
-            param_encode = (char *)malloc(sizeof(char)*SHA_DIGEST_LENGTH*3+1);
-            item = urlencode(info_hash, SHA_DIGEST_LENGTH, param_encode);
-            copy_param(param, &param_length, item, strlen(item));
-            free(param_encode);
-            param_encode = NULL;
-        }
-        else if ( i == 1 ) {
-            param_encode = (char *)malloc(sizeof(char)*strlen(peer_id)*3+1);
-            item = urlencode((unsigned char *)peer_id, strlen(peer_id), param_encode);
-            copy_param(param, &param_length, item, strlen(item));
-            free(param_encode);
-            param_encode = NULL;
-        }
-        else if ( i == 2 ) {
-            copy_param(param, &param_length, port, strlen(port));
-        }
-        else if ( i == 3 ) {
-            item = itoa(uploaded);
-            copy_param(param, &param_length, item, strlen(item));
-            free(item);
-            item = NULL;
-        }
-        else if ( i == 4 ) {
-            item = itoa(downloaded);
-            copy_param(param, &param_length, item, strlen(item));
-            free(item);
-            item = NULL;
-        }
-        else if ( i == 5 ) {
-            item = itoa(left);
-            copy_param(param, &param_length, item, strlen(item));
-            free(item);
-            item = NULL;
-        }
-        else if ( i == 6 ) {
-            item = itoa(compact);
-            copy_param(param, &param_length, item, strlen(item));
-            free(item);
-            item = NULL;
-        }
-        else if ( i == 7 ) {
-            copy_param(param, &param_length, event, strlen(event));
-        }
-        else if ( i == 8 ) {
-            copy_param(param, &param_length, ip, strlen(ip));
-        }
-    }
+    
+    hash_encode = (char *)malloc(sizeof(char)*SHA_DIGEST_LENGTH*3+1);
+    hash_encode = urlencode(info_hash, SHA_DIGEST_LENGTH, hash_encode);
+
+    peer_encode = (char *)malloc(sizeof(char)*strlen(peer_id)*3+1);
+    peer_encode = urlencode((unsigned char *)peer_id, strlen(peer_id), peer_encode);
+
+    sprintf(param, "%s?info_hash=%s&peer_id=%s&port=%s&uploaded=%d&downloaded=%d&left=%lu&compact=%d&event=%s&ip=%s",
+            path, hash_encode, peer_encode, port, uploaded, downloaded, left, compact, event, ip
+        );
     return param;
-}
-
-void copy_param(char *param, int *param_length, char *src, int src_length) {
-    int j = 0;
-    int len = *param_length;
-    while ( j < src_length ) {
-        param[len++] = src[j++];
-    }
-    param[len] = '\0';
-    *param_length = len;
-}
-
-char *itoa(int number) {
-    char *figures;
-    int length = (number == 0 || number == 1) ? 2 : (int)ceil(log10(number)) + 1;
-    figures = malloc(length*sizeof(char));
-    sprintf(figures, "%d", number);
-    return figures;
 }
 
 char *get(struct url *uri, char *param) {

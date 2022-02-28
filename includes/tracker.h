@@ -8,7 +8,5 @@ unsigned char *get_info_hash();
 long get_left();
 char *get_ip();
 char *generate_param(char *path, char *peer_id);
-void copy_param(char *param, int *param_length, char *src, int src_length);
-char *itoa(int number);
 char *get(struct url *uri, char *param);
 void *get_in_addr(struct sockaddr *sa);
