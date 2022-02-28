@@ -50,7 +50,7 @@ unsigned char* get_info_hash() {
 }
 
 long get_left() {
-    int size = 0;
+    long int size = 0;
     struct parse_item *length_list = parser_table_lookup("length", decode_table, TORRENT_TABLE_SIZE);
     struct decode *length_node = length_list->head;
     while ( length_node != NULL ) {
