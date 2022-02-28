@@ -50,11 +50,14 @@ unsigned char* get_info_hash() {
 }
 
 long get_left() {
-    struct parse_item *pieces = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
-    struct parse_item *piece_size = parser_table_lookup("piece length", decode_table, TORRENT_TABLE_SIZE);
-    int total_piece_length = pieces->head->value->length;
-    int num_pieces = total_piece_length / HASHED_PIECE_LENGTH;
-    return num_pieces * atoi(piece_size->head->value->data);
+    int size = 0;
+    struct parse_item *length_list = parser_table_lookup("length", decode_table, TORRENT_TABLE_SIZE);
+    struct decode *length_node = length_list->head;
+    while ( length_node != NULL ) {
+        size += atoi(length_node->value->data);
+        length_node = length_node->next;
+    }
+    return size;
 }
 
 char *get_ip() {
@@ -105,7 +108,7 @@ char *generate_param(char *path, char *peer_id) {
         "&ip=",
     };
     char *param = (char *)malloc(sizeof(char)*PATH_LENGTH);
-    
+
     hash_encode = (char *)malloc(sizeof(char)*SHA_DIGEST_LENGTH*3+1);
     hash_encode = urlencode(info_hash, SHA_DIGEST_LENGTH, hash_encode);
 
