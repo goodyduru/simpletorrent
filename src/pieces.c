@@ -225,7 +225,7 @@ int are_all_block_full(int piece_index) {
     int num_of_blocks = pieces[piece_index]->number_of_blocks;
     for ( int i = 0; i < num_of_blocks; i++ ) {
         single_block = pieces[piece_index]->block_list[i];
-        if ( single_block != FULL ) {
+        if ( single_block->state != FULL ) {
             return 0;
         }
     }
@@ -244,6 +244,7 @@ int set_to_full(struct piece *piece_node) {
     piece_node->is_full = 1;
     piece_node->raw_data = data;
     write_piece_to_disk(piece_node);
+    return 1;
 }
 
 void merge_blocks(struct piece *piece_node, char *data) {
@@ -281,15 +282,15 @@ void write_piece_to_disk(struct piece *single_piece) {
         length = file_node->length;
         piece_offset = file_node->piece_offset;
         path = file_node->path;
-        bfile = fopen(path, 'r+b');
+        bfile = fopen(path, "r+b");
         if ( bfile == NULL ) {
-            bfile = fopen(path, 'wb');
+            bfile = fopen(path, "wb");
         }
         if ( bfile == NULL ) {
             printf("Problems creating file %s\n", path);
             return;
         }
-        fseek(bfile, file_offset);
+        fseek(bfile, file_offset, SEEK_SET);
         fwrite(single_piece->raw_data+piece_offset, sizeof(char), length, bfile);
         fclose(bfile);
         file_node = file_node->next;
