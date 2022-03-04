@@ -1,6 +1,12 @@
+#include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
+#include <stdio.h>
+#include <time.h>
 #include <sys/stat.h>
+
+#include <openssl/sha.h>
 
 #include "parser.h"
 #include "pieces.h"
@@ -17,8 +23,9 @@ void generate_pieces() {
     int i = 0;
     total_file_size = get_torrent_file_size();
     pieces = (struct piece **) malloc(number_of_pieces * sizeof(struct piece *));
+    bitfields = (int *) malloc(number_of_pieces * sizeof(int));
     piece_size = atoi(piece_length_item->head->value->data);
-
+    complete_pieces = 0;
     while ( i < number_of_pieces ) {
         start = i * HASHED_PIECE_LENGTH;
         if ( i == last_piece ) {
@@ -49,6 +56,8 @@ void init_block(struct piece *single_piece) {
         piece_block->block_size = single_piece->piece_size;
         piece_block->last_seen = 0;
         piece_block->state = FREE;
+        piece_block->block_index = 0;
+        piece_block->data = NULL;
         single_piece->block_list[0] = piece_block;
         return;
     }
@@ -61,6 +70,8 @@ void init_block(struct piece *single_piece) {
         piece_block->block_size = block_size;
         piece_block->last_seen = 0;
         piece_block->state = FREE;
+        piece_block->block_index = i;
+        piece_block->data = NULL;
         single_piece->block_list[i] = piece_block;
     }
 }
@@ -154,4 +165,133 @@ void add_piece_file_list(struct piece *single_piece, struct file *file_item) {
         node = node->next;
     }
     node->next = file_item;
+}
+
+void update_bitfield(int piece_index) {
+    bitfields[piece_index] = 1;
+}
+
+void update_block_status(int piece_index) {
+    struct block *single_block;
+    time_t result;
+    int num_of_blocks = pieces[piece_index]->number_of_blocks;
+    for ( int i = 0; i < num_of_blocks; i++ ) {
+        single_block = pieces[piece_index]->block_list[i];
+        result = time(NULL);
+        if ( single_block->state == PENDING && ((uintmax_t)result - single_block->last_seen) > 5 ) {
+            single_block->state = FREE;
+            single_block->last_seen = 0;
+            if ( single_block->data != NULL ) {
+                free(single_block->data);
+                single_block->data = NULL;
+            }
+        }
+    }
+}
+
+void set_block(int piece_index, int piece_offset, char *data) {
+    int block_index = piece_offset/BLOCK_SIZE;
+    struct block *single_block = pieces[piece_index]->block_list[block_index];
+    if ( !pieces[piece_index]->is_full && single_block->state != FULL ) {
+        single_block->data = data;
+        single_block->state = FULL;
+    }
+}
+
+void get_block(int piece_index, int block_offset, int block_size, char *result) {
+    memcpy(result, pieces[piece_index]->raw_data+block_offset, block_size);
+}
+
+struct block *get_empty_block(int piece_index) {
+    if ( pieces[piece_index]->is_full ) {
+        return NULL;
+    }
+    struct block *single_block;
+    int num_of_blocks = pieces[piece_index]->number_of_blocks;
+    for ( int i = 0; i < num_of_blocks; i++ ) {
+        single_block = pieces[piece_index]->block_list[i];
+        if ( single_block->state == FREE ) {
+            continue;
+        }
+        single_block->state = PENDING;
+        single_block->last_seen = (uintmax_t)time(NULL);
+        return single_block;
+    }
+    return NULL;
+}
+
+int are_all_block_full(int piece_index) {
+    struct block *single_block;
+    int num_of_blocks = pieces[piece_index]->number_of_blocks;
+    for ( int i = 0; i < num_of_blocks; i++ ) {
+        single_block = pieces[piece_index]->block_list[i];
+        if ( single_block != FULL ) {
+            return 0;
+        }
+    }
+    return 1;
+}
+
+int set_to_full(struct piece *piece_node) {
+    char *data = (char *) malloc(sizeof(char)*piece_node->piece_size);
+    merge_blocks(piece_node, data);
+    if ( !valid_blocks(piece_node, data) ) {
+        init_block(piece_node);
+        free(data);
+        return 0;
+    }
+
+    piece_node->is_full = 1;
+    piece_node->raw_data = data;
+    write_piece_to_disk(piece_node);
+}
+
+void merge_blocks(struct piece *piece_node, char *data) {
+    struct block *single_block;
+    int piece_offset = 0;
+    int num_of_blocks = piece_node->number_of_blocks;
+    for ( int i = 0; i < num_of_blocks; i++ ) {
+        single_block = piece_node->block_list[i];
+        memcpy(data+piece_offset, single_block->data, single_block->block_size);
+        free(single_block->data);
+        free(single_block);
+        piece_offset += single_block->block_size;
+    }
+    free(piece_node->block_list);
+}
+
+int valid_blocks(struct piece *single_piece, char *data) {
+    unsigned char *hash = (unsigned char *) malloc(SHA_DIGEST_LENGTH*sizeof(unsigned char));
+    SHA1((unsigned char *)data, single_piece->piece_size, hash);
+
+    if ( memcmp(hash, single_piece->piece_hash, SHA_DIGEST_LENGTH) == 0 ) {
+        return 1;
+    }
+    printf("Invalid Hash\n ");
+    return 0;
+}   
+
+void write_piece_to_disk(struct piece *single_piece) {
+    char *path;
+    int file_offset, piece_offset, length;
+    FILE *bfile;
+    struct file *file_node = single_piece->file_list;
+    while ( file_node != NULL ) {
+        file_offset = file_node->file_offset;
+        length = file_node->length;
+        piece_offset = file_node->piece_offset;
+        path = file_node->path;
+        bfile = fopen(path, 'r+b');
+        if ( bfile == NULL ) {
+            bfile = fopen(path, 'wb');
+        }
+        if ( bfile == NULL ) {
+            printf("Problems creating file %s\n", path);
+            return;
+        }
+        fseek(bfile, file_offset);
+        fwrite(single_piece->raw_data+piece_offset, sizeof(char), length, bfile);
+        fclose(bfile);
+        file_node = file_node->next;
+    }
 }
