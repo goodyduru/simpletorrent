@@ -49,17 +49,6 @@ unsigned char* get_info_hash() {
     return hash;
 }
 
-long get_left() {
-    long int size = 0;
-    struct parse_item *length_list = parser_table_lookup("length", decode_table, TORRENT_TABLE_SIZE);
-    struct decode *length_node = length_list->head;
-    while ( length_node != NULL ) {
-        size += atoi(length_node->value->data);
-        length_node = length_node->next;
-    }
-    return size;
-}
-
 char *get_ip() {
     char *ip;
     struct ifaddrs *if_addr_struct = NULL;
@@ -91,7 +80,7 @@ char *generate_param(char *path, char *peer_id) {
     char *port = MY_PORT;
     int uploaded = 0;
     int downloaded = 0;
-    long left = get_left();
+    long left = get_torrent_file_size();
     int compact = 1;
     char *event = "started";
     char *ip = get_ip();
@@ -118,6 +107,8 @@ char *generate_param(char *path, char *peer_id) {
     sprintf(param, "%s?info_hash=%s&peer_id=%s&port=%s&uploaded=%d&downloaded=%d&left=%lu&compact=%d&event=%s&ip=%s",
             path, hash_encode, peer_encode, port, uploaded, downloaded, left, compact, event, ip
         );
+    free(hash_encode);
+    free(peer_encode);
     return param;
 }
 

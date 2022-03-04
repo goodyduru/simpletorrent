@@ -57,3 +57,36 @@ char *generate_string(int string_length) {
     }
     return begin;
 }
+
+long get_torrent_file_size() {
+    long int size = 0;
+    struct parse_item *length_list = parser_table_lookup("length", decode_table, TORRENT_TABLE_SIZE);
+    struct decode *length_node = length_list->head;
+    while ( length_node != NULL ) {
+        size += atoi(length_node->value->data);
+        length_node = length_node->next;
+    }
+    return size;
+}
+
+void create_directory(char *dir) {
+    char *last = strrchr(dir, '/');
+    if ( last == NULL ) {
+        return;
+    }
+    char tmp[256];
+    char *p = NULL;
+    int len;
+    snprintf(tmp, sizeof(tmp), "%s", dir);
+    last = strrchr(tmp, '/');
+    //Avoid creating file as a directory
+    *last = 0;
+    for ( p = tmp; *p; p++ ) {
+        if (*p == '/') {
+            *p = 0;
+            mkdir(tmp, 0744);
+            *p = '/';
+        }
+    }
+    mkdir(tmp, 0744);
+}

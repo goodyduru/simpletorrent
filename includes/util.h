@@ -5,3 +5,5 @@ void echo(char *string, int str_length);
 unsigned int hash(char *data, int data_len);
 int file_size(char *filename);
 char *generate_string(int string_length);
+long get_torrent_file_size();
+void create_directory(char *dir);

@@ -7,6 +7,7 @@
 #include "url.h"
 #include "tracker.h"
 #include "peer.h"
+#include "pieces.h"
 
 int main(int argc, char *argv[]) {
     FILE *fp;
@@ -54,5 +55,11 @@ int main(int argc, char *argv[]) {
 
     send_request();
     parse_peer();
+    generate_pieces();
+    struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
+    int number_of_pieces  = pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+    for ( int i = 0; i < number_of_pieces; i++ ) {
+        printf("Index: %d, Size: %d, Is Full: %d, Number of Blocks: %d, Hash: %s, File Length: %d, File Offset: %d, Piece Offset: %d, File Name: %s\n", pieces[i]->piece_index, pieces[i]->piece_size, pieces[i]->is_full, pieces[i]->number_of_blocks, pieces[i]->piece_hash, pieces[i]->file_list->length,  pieces[i]->file_list->file_offset,  pieces[i]->file_list->piece_offset,  pieces[i]->file_list->path);
+    }
     return 0;
 }
