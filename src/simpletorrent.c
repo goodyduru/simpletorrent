@@ -7,7 +7,7 @@
 #include "url.h"
 #include "tracker.h"
 #include "peer.h"
-#include "pieces.h"
+#include "piece.h"
 
 int main(int argc, char *argv[]) {
     FILE *fp;
