@@ -125,3 +125,41 @@ void load_files(char **file_names, int *file_sizes, int num_of_files) {
 void update_bitfield(int piece_index) {
     bitfields[piece_index] = 1;
 }
+
+void receive_block_piece(struct piece *piece_node, int piece_offset, char *data) {
+    if ( piece_node->is_full ) return;
+    int success;
+    set_block(piece_node, piece_offset, data);
+    if ( are_all_block_full(piece_node) && (success = set_to_full(piece_node)) == 1  ) {
+        complete_pieces += 1; 
+    }
+}
+
+void fill_block(int piece_index, int block_offset, int block_size, char *result) {
+    struct piece *single_piece;
+    struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
+    int number_of_pieces  = pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+    for ( int i = 0; i < number_of_pieces; i++ ) {
+        if ( i != pieces[i]->piece_index ) {
+            continue;
+        }
+        single_piece = pieces[i];
+        if ( single_piece->is_full ) {
+            get_block(single_piece, block_offset, block_size, result);
+        }
+        else {
+            break;
+        }
+    }
+}
+
+int all_pieces_completed() {
+    struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
+    int number_of_pieces  = pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+    for ( int i = 0; i < number_of_pieces; i++ ) {
+        if ( !pieces[i]->is_full ) {
+            return 0;
+        }
+    }
+    return 1;
+}
