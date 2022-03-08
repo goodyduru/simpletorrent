@@ -3,7 +3,6 @@
 
 void send_request();
 struct url *get_url();
-unsigned char *get_info_hash();
 char *get_ip();
 char *generate_param(char *path, char *peer_id);
 char *get(struct url *uri, char *param);

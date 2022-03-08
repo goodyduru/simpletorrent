@@ -1,3 +1,6 @@
+#ifndef PARSER_HEADER
+#define PARSER_HEADER
+
 #include "raw.h"
 
 #define TORRENT_TABLE_SIZE 20
@@ -37,3 +40,4 @@ struct parse_item *parser_table_lookup(char *key, struct parse_item *table[], in
 void add_value_to_node(int index, struct str *value, struct parse_item *table[]);
 void parse(struct raw_item *table_raw[], int raw_table_size, struct parse_item *parse_table[], int table_size);
 void concatenate_string(struct str *first, char *second, int second_len);
+#endif

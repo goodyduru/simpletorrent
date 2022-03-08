@@ -2,7 +2,9 @@
 #include <string.h>
 #include <stdlib.h>
 #include <time.h>
+#include <unistd.h>
 #include <sys/stat.h>
+#include <openssl/sha.h>
 
 #include "parser.h"
 #include "util.h"
@@ -27,9 +29,7 @@ void out(struct parse_item *item) {
 
 void echo(char *string, int str_length) {
     int i = 0;
-    while ( i < str_length ) {
-        printf("%c", string[i++]);
-    }
+    write(1, string, str_length);
     printf("\n");
 }
 
@@ -89,4 +89,11 @@ void create_directory(char *dir) {
         }
     }
     mkdir(tmp, 0744);
+}
+
+unsigned char* get_info_hash() {
+    struct str *info = raw_table_lookup("info", raw_table, RAW_TABLE_SIZE);
+    unsigned char *hash = (unsigned char *) malloc(SHA_DIGEST_LENGTH*sizeof(unsigned char));
+    SHA1((unsigned char *)info->data, info->length, hash);
+    return hash;
 }

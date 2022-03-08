@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <ifaddrs.h>
@@ -20,7 +21,10 @@
 
 void send_request(){
     struct url *tracker_url = get_url();
-    char *peer_id = generate_string(20);
+    peer_id = (char *) malloc((PEER_ID_LENGTH+1)*sizeof(char));
+    char *gen = generate_string(PEER_ID_LENGTH-8);
+    sprintf(peer_id, "-GD0001-%s", gen);
+    free(gen);
     char *param = generate_param(tracker_url->path, peer_id);
     char *body = get(tracker_url, param);
     free(param);
@@ -40,13 +44,6 @@ struct url *get_url() {
     char *url_str = announce->head->value->data;
     int url_length = announce->head->value->length;
     return parse_url(url_str, url_length);
-}
-
-unsigned char* get_info_hash() {
-    struct str *info = raw_table_lookup("info", raw_table, RAW_TABLE_SIZE);
-    unsigned char *hash = (unsigned char *) malloc(SHA_DIGEST_LENGTH*sizeof(unsigned char));
-    SHA1((unsigned char *)info->data, info->length, hash);
-    return hash;
 }
 
 char *get_ip() {
