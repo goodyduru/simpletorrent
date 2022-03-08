@@ -1,6 +1,7 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdio.h>
 #include <sys/stat.h>
 
 #include "parser.h"
@@ -14,7 +15,7 @@ void generate_pieces() {
     struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
     struct parse_item *piece_length_item = parser_table_lookup("piece length", decode_table, TORRENT_TABLE_SIZE);
     char *pieces_char = pieces_item->head->value->data;
-    int number_of_pieces  = pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+    int number_of_pieces  = get_piece_size();
     int last_piece = number_of_pieces - 1;
     int i = 0;
     total_file_size = get_torrent_file_size();
@@ -38,6 +39,7 @@ void generate_pieces() {
         pieces[i]->raw_data = NULL;
         init_block(pieces[i]);
         pieces[i]->file_list = NULL;
+        bitfields[i] = 0; //initialize bitfields to 0
         i++;
     }
     generate_files();
@@ -137,8 +139,7 @@ void receive_block_piece(struct piece *piece_node, int piece_offset, char *data)
 
 void fill_block(int piece_index, int block_offset, int block_size, char *result) {
     struct piece *single_piece;
-    struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
-    int number_of_pieces  = pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+    int number_of_pieces  = get_piece_size();
     for ( int i = 0; i < number_of_pieces; i++ ) {
         if ( i != pieces[i]->piece_index ) {
             continue;
@@ -154,8 +155,7 @@ void fill_block(int piece_index, int block_offset, int block_size, char *result)
 }
 
 int all_pieces_completed() {
-    struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
-    int number_of_pieces  = pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+    int number_of_pieces = get_piece_size();
     for ( int i = 0; i < number_of_pieces; i++ ) {
         if ( !pieces[i]->is_full ) {
             return 0;

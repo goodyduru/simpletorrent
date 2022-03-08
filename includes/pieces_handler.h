@@ -3,7 +3,6 @@
 #include <stdint.h>
 
 #define BLOCK_SIZE 16384
-#define HASHED_PIECE_LENGTH 20
 typedef enum {FREE=0, PENDING, FULL} State;
 
 struct block {

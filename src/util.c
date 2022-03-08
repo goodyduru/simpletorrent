@@ -97,3 +97,8 @@ unsigned char* get_info_hash() {
     SHA1((unsigned char *)info->data, info->length, hash);
     return hash;
 }
+
+int get_piece_size() {
+    struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
+    return pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+}
