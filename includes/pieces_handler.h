@@ -2,6 +2,11 @@
 #define PIECES_HANDLER_HEADER
 #include <stdint.h>
 
+//Bitarray definition. Thanks to http://www.mathcs.emory.edu/~cheung/Courses/255/Syllabus/1-C-intro/bit-array.html
+#define SetBit(A,k)     ( A[(k/8)] |= (1 << (k%8)) )
+#define ClearBit(A,k)   ( A[(k/8)] &= ~(1 << (k%8)) )
+#define TestBit(A,k)    ( A[(k/8)] & (1 << (k%8)) )
+
 #define BLOCK_SIZE 16384
 typedef enum {FREE=0, PENDING, FULL} State;
 
@@ -10,7 +15,6 @@ struct block {
     uintmax_t last_seen;
     State state;
     char *data;
-    int block_index;
 };
 
 struct file {
@@ -33,7 +37,7 @@ struct piece {
 };
 
 struct piece **pieces;
-int *bitfields;
+char *bitfields;
 int complete_pieces;
 
 void generate_pieces();

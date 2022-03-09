@@ -20,7 +20,11 @@ void generate_pieces() {
     int i = 0;
     total_file_size = get_torrent_file_size();
     pieces = (struct piece **) malloc(number_of_pieces * sizeof(struct piece *));
-    bitfields = (int *) malloc(number_of_pieces * sizeof(int));
+    int bit_array_length = (int)ceil(number_of_pieces/8.0);
+    bitfields = (char *) malloc(bit_array_length);
+    for ( int f = 0; f < bit_array_length; f++ ) {
+        bitfields[f] = 0;
+    }
     piece_size = atoi(piece_length_item->head->value->data);
     complete_pieces = 0;
     while ( i < number_of_pieces ) {
@@ -39,7 +43,6 @@ void generate_pieces() {
         pieces[i]->raw_data = NULL;
         init_block(pieces[i]);
         pieces[i]->file_list = NULL;
-        bitfields[i] = 0; //initialize bitfields to 0
         i++;
     }
     generate_files();
@@ -125,7 +128,7 @@ void load_files(char **file_names, int *file_sizes, int num_of_files) {
 }
 
 void update_bitfield(int piece_index) {
-    bitfields[piece_index] = 1;
+    SetBit(bitfields, piece_index);
 }
 
 void receive_block_piece(struct piece *piece_node, int piece_offset, char *data) {

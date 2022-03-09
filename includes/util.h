@@ -16,4 +16,5 @@ long get_torrent_file_size();
 void create_directory(char *dir);
 unsigned char *get_info_hash();
 int get_piece_size();
+unsigned char reverse_bit(unsigned char b);
 #endif

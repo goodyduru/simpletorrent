@@ -17,7 +17,6 @@ void init_block(struct piece *single_piece) {
         piece_block->block_size = single_piece->piece_size;
         piece_block->last_seen = 0;
         piece_block->state = FREE;
-        piece_block->block_index = 0;
         piece_block->data = NULL;
         single_piece->block_list[0] = piece_block;
         return;
@@ -31,7 +30,6 @@ void init_block(struct piece *single_piece) {
         piece_block->block_size = block_size;
         piece_block->last_seen = 0;
         piece_block->state = FREE;
-        piece_block->block_index = i;
         piece_block->data = NULL;
         single_piece->block_list[i] = piece_block;
     }
@@ -76,8 +74,8 @@ void set_block(struct piece *piece_node, int piece_offset, char *data) {
     }
 }
 
-void get_block(struct piece *piece_node, int block_offset, int block_size, char *result) {
-    memcpy(result, piece_node->raw_data+block_offset, block_size);
+void get_block(struct piece *piece_node, int piece_offset, int block_size, char *result) {
+    memcpy(result, piece_node->raw_data+piece_offset, block_size);
 }
 
 struct block *get_empty_block(struct piece *piece_node) {
