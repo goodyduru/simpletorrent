@@ -1,5 +1,9 @@
+#include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
+#include <arpa/inet.h>
 
 #include "parser.h"
 #include "util.h"
@@ -8,6 +12,7 @@
 #include "tracker.h"
 #include "peer.h"
 #include "piece.h"
+#include "peer_message.h"
 
 int main(int argc, char *argv[]) {
     FILE *fp;
@@ -61,5 +66,62 @@ int main(int argc, char *argv[]) {
     for ( int i = 0; i < number_of_pieces; i++ ) {
         printf("Index: %d, Size: %d, Is Full: %d, Number of Blocks: %d, Hash: %s, File Length: %d, File Offset: %d, Piece Offset: %d, File Name: %s\n", pieces[i]->piece_index, pieces[i]->piece_size, pieces[i]->is_full, pieces[i]->number_of_blocks, pieces[i]->piece_hash, pieces[i]->file_list->length,  pieces[i]->file_list->file_offset,  pieces[i]->file_list->piece_offset,  pieces[i]->file_list->path);
     }
+    char *me = malloc(68);
+    generate_handshake_message(me);
+    write(1, me, 68);
+    printf("\n");
+    struct handshake_message *hm = read_handshake_message(me);
+    printf("%s\n", hm->peer_id);
+    generate_keepalive_message(me);
+    printf("%s\n", me);
+    printf("%d\n", is_keepalive_message(me));
+    generate_choke_message(me);
+    printf("%s\n", me);
+    printf("%d\n", is_choke_message(me));
+    generate_unchoke_message(me);
+    printf("%s\n", me);
+    printf("%d\n", is_unchoke_message(me));
+    generate_interested_message(me);
+    printf("%s\n", me);
+    printf("%d\n", is_interested_message(me));
+    generate_uninterested_message(me);
+    printf("%s\n", me);
+    printf("%d\n", is_uninterested_message(me));
+    generate_have_message(me, 145);
+    printf("%s\n", me);
+    printf("%d\n", read_have_message(me));
+    free(me);
+    me = malloc(get_piece_size()+5+1);
+    SetBit(bitfields, 62);
+    for ( i = 0; i < (int)ceil(get_piece_size()/8.0); i++ ) {
+        printf("%d\t", bitfields[i]);
+    }
+    printf("\n");
+    generate_bitfield_message(me);
+    int len = (int)ceil(get_piece_size()/8.0);
+    for ( i = 5; i < len+5; i++ ) {
+        printf("\\x%02x ", me[i]);
+    }
+    printf("\n");
+    char fields[(int)ceil(get_piece_size()/8.0)];
+    read_bitfield_message(me, fields);
+    for ( i = 0; i < (int)ceil(get_piece_size()/8.0); i++ ) {
+        printf("%d\t", fields[i]);
+    }
+    printf("\n");
+    generate_request_message(me, 10, 30004, 32875);
+    int request[3];
+    read_request_message(me, request);
+    printf("%d\t%d\t%d\n", request[0], request[1], request[2]);
+    generate_piece_message(me, 10, 300004, 5, "Hello");
+    char* block_data = malloc(6);
+    read_piece_message(me, block_data);
+    block_data[5] = '\0';
+    printf("%s\n", block_data);
+    generate_cancel_message(me, 10, 30089, 38275);
+    read_cancel_message(me, request);
+    printf("%d\t%d\t%d\n", request[0], request[1], request[2]);
+    generate_port_message(me, 4145);
+    printf("%d\n", read_port_message(me));
     return 0;
 }
