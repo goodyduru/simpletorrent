@@ -12,7 +12,7 @@
 #include "url.h"
 #include "tracker.h"
 #include "peers_handler.h"
-#include "piece.h"
+#include "pieces_handler.h"
 #include "peer_message.h"
 
 int main(int argc, char *argv[]) {
