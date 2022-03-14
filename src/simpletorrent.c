@@ -5,12 +5,13 @@
 #include <unistd.h>
 #include <arpa/inet.h>
 
+#include "bitfield.h"
 #include "parser.h"
 #include "util.h"
 #include "raw.h"
 #include "url.h"
 #include "tracker.h"
-#include "peer.h"
+#include "peers_handler.h"
 #include "piece.h"
 #include "peer_message.h"
 

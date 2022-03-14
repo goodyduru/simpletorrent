@@ -6,6 +6,7 @@
 #include <openssl/sha.h>
 #include <arpa/inet.h>
 
+#include "bitfield.h"
 #include "peer_message.h"
 #include "pieces_handler.h"
 #include "util.h"
@@ -152,7 +153,6 @@ int read_have_message(char *message) {
 }
 
 void generate_bitfield_message(char *message) {
-    unsigned char rev;
     int nob;
     int message_id = 0x5;
     int message_length = 5;
@@ -163,14 +163,10 @@ void generate_bitfield_message(char *message) {
     message_length = htonl(message_length);
     memcpy(message, &message_length, 4);
     memcpy(message+4, &message_id, 1);
-    for ( int i = 0; i < bitfield_length; i++ ) {
-        rev = reverse_bit((unsigned char) bitfields[i]);
-        memcpy(message+5+i, &rev, 1);
-    }
+    bitarray_to_string(bitfields, bitfield_length, message+5);
 }
 
 int read_bitfield_message(char *message, char field[]) {
-    unsigned char rev;
     int normal_number = 0;
     int message_length = 0;
     int message_id = 0;
@@ -181,10 +177,7 @@ int read_bitfield_message(char *message, char field[]) {
     if ( message_length != (bitfield_length+5) || message_id != 5 ) {
         return 0;
     }
-    for ( int i = 0; i < bitfield_length; i++ ) {
-        memcpy(&rev, message+5+i, 1);
-        field[i] = reverse_bit(rev);
-    }
+    string_to_bitarray(message+5, bitfield_length, field);
     return 1;
 }
 

@@ -102,11 +102,3 @@ int get_piece_size() {
     struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
     return pieces_item->head->value->length / HASHED_PIECE_LENGTH;
 }
-
-//https://stackoverflow.com/a/2602885
-unsigned char reverse_bit(unsigned char b) {
-   b = (b & 0xF0) >> 4 | (b & 0x0F) << 4;
-   b = (b & 0xCC) >> 2 | (b & 0x33) << 2;
-   b = (b & 0xAA) >> 1 | (b & 0x55) << 1;
-   return b;
-}

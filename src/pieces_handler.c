@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+#include "bitfield.h"
 #include "parser.h"
 #include "pieces_handler.h"
 #include "piece.h"
@@ -20,11 +21,7 @@ void generate_pieces() {
     int i = 0;
     total_file_size = get_torrent_file_size();
     pieces = (struct piece **) malloc(number_of_pieces * sizeof(struct piece *));
-    int bit_array_length = (int)ceil(number_of_pieces/8.0);
-    bitfields = (char *) malloc(bit_array_length);
-    for ( int f = 0; f < bit_array_length; f++ ) {
-        bitfields[f] = 0;
-    }
+    bitfields = create_bitarray(number_of_pieces);
     piece_size = atoi(piece_length_item->head->value->data);
     complete_pieces = 0;
     while ( i < number_of_pieces ) {
