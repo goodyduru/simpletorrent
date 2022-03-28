@@ -128,7 +128,8 @@ void update_bitfield(int piece_index) {
     SetBit(bitfields, piece_index);
 }
 
-void receive_block_piece(struct piece *piece_node, int piece_offset, char *data) {
+void receive_block_piece(int piece_index, int piece_offset, char *data) {
+    struct piece *piece_node = pieces[piece_index];
     if ( piece_node->is_full ) return;
     int success;
     set_block(piece_node, piece_offset, data);

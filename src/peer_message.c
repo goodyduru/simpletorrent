@@ -25,7 +25,7 @@
 void generate_handshake_message(char *message) {
     memset(message, PSTR_V1_LENGTH, 1);
     memcpy(message+1, PSTR_V1, PSTR_V1_LENGTH);
-    memset(message+20, 0, 8);
+    memset(message+20, 0x0, 8);
     unsigned char *hash = get_info_hash();
     memcpy(message+28, hash, SHA_DIGEST_LENGTH);
     free(hash);
@@ -146,7 +146,7 @@ int read_have_message(char *message) {
     memcpy(&piece_index, message+5, 4);
     message_length = ntohl(message_length);
     if ( message_length != 5 || message_id != 4 ) {
-        return 0;
+        return -1;
     }
     piece_index = ntohl(piece_index);
     return piece_index;
@@ -228,12 +228,14 @@ void generate_piece_message(char *message, int piece_index, int piece_offset, in
     memcpy(message+13, data, block_length);
 }
 
-int read_piece_message(char *message, char *block_data) {
+struct piece_message *get_piece_message(char *message) {
+    struct piece_message *result;
     int message_length = 0;
     int message_id = 0;
     int piece_index = 0;
     int piece_offset = 0;
     int block_length = 0;
+    char *block_data;
     memcpy(&message_length, message, 4);
     memcpy(&message_id, message+4, 1);
     memcpy(message+5, &piece_index, 4);
@@ -241,10 +243,15 @@ int read_piece_message(char *message, char *block_data) {
     message_length = ntohl(message_length);
     block_length = message_length - 9;
     if ( message_length != (block_length+9) || message_id != 7 ) {
-        return 0;
+        return NULL;
     }
+    block_data = malloc(block_length);
     memcpy(block_data, message+13, block_length);
-    return 1;
+    result = (struct piece_message *)malloc(sizeof(struct piece_message));
+    result->piece_index = ntohl(piece_index);
+    result->piece_offset = ntohl(piece_offset);
+    result->data = block_data;
+    return result;
 }
 
 void generate_cancel_message(char *message, int piece_index, int piece_offset, int block_size) {
@@ -302,4 +309,17 @@ int read_port_message(char *message) {
     }
     port = ntohl(port);
     return port;
+}
+
+int get_message_length(char *message) {
+    int message_length = 0;
+    memcpy(&message_length, message, 4);
+    message_length = ntohl(message_length);
+    return message_length + 4;
+}
+
+int get_message_id(char *message) {
+    int message_id = 0;
+    memcpy(&message_id, message+4, 1);
+    return message_id;
 }

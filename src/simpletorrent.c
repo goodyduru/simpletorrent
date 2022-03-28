@@ -115,10 +115,9 @@ int main(int argc, char *argv[]) {
     read_request_message(me, request);
     printf("%d\t%d\t%d\n", request[0], request[1], request[2]);
     generate_piece_message(me, 10, 300004, 5, "Hello");
-    char* block_data = malloc(6);
-    read_piece_message(me, block_data);
-    block_data[5] = '\0';
-    printf("%s\n", block_data);
+    struct piece_message *t = get_piece_message(me);
+    t->data[5] = '\0';
+    printf("%s\n", t->data);
     generate_cancel_message(me, 10, 30089, 38275);
     read_cancel_message(me, request);
     printf("%d\t%d\t%d\n", request[0], request[1], request[2]);
