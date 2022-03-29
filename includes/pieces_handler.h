@@ -10,4 +10,5 @@ void update_bitfield(int piece_index);
 void receive_block_piece(int piece_index, int piece_offset, char *data);
 void fill_block(int piece_index, int block_offset, int block_size, char *result);
 int all_pieces_completed();
+char *get_piece_block(int piece_index, int piece_offset, int block_length);
 #endif

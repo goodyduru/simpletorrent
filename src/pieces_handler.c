@@ -164,3 +164,9 @@ int all_pieces_completed() {
     }
     return 1;
 }
+
+char *get_piece_block(int piece_index, int piece_offset, int block_length) {
+    char *block = malloc(block_length);
+    get_block(pieces[piece_index], piece_offset, block_length, block);
+    return block;
+}
