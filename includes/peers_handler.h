@@ -8,7 +8,8 @@
 #include <poll.h>
 #include "peer.h"
 
-void parse_peer();
+struct peer **get_peers();
+int get_number_original_peers();
 void fill_peer(char *peers[][2], struct str *peers_str);
 void gen_ip_and_port(char *item, char *peer[]);
 void init_peers();
@@ -20,5 +21,5 @@ void add_peer(struct peer *p);
 void remove_peer(struct peer *p, struct pollfd *pfd);
 struct peer *get_peer_by_socket(int socket);
 void extract_sockets(struct pollfd **pfds);
-void run();
+void connect_to_peers();
 #endif

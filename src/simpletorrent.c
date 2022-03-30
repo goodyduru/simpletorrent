@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <arpa/inet.h>
 
 #include "bitfield.h"
 #include "parser.h"
@@ -14,11 +13,10 @@
 #include "peers_handler.h"
 #include "pieces_handler.h"
 #include "peer_message.h"
+#include "test.h"
 
-int main(int argc, char *argv[]) {
+void initialize_tables(char *file_name, char *prog) {
     FILE *fp;
-    char *file_name = "./won.torrent";
-    char *prog = argv[0];
     int size;
     int i = 0;
     if ( (fp = fopen(file_name, "rb")) == NULL ) {
@@ -29,99 +27,85 @@ int main(int argc, char *argv[]) {
     char buffer[size];
 
     fread(buffer, 1, sizeof buffer, fp);
-    for ( int i = 0; i < size; i++ ) {
-        printf("%c", buffer[i]);
-    }
-    printf("\n");
-    struct str *result = get_raw_content(buffer, 0, "announce", raw_table, RAW_TABLE_SIZE);
-    for ( int i = 0; i < result->length; i++ ) {
-        printf("%c", result->data[i]);
-    }
-    printf("\n");
-
-    result = get_raw_content(buffer, 0, "info", raw_table, RAW_TABLE_SIZE);
-    for ( int i = 0; i < result->length; i++ ) {
-        printf("%c", result->data[i]);
-    }
-    printf("\n");
-    
+    build_raw_table(buffer, 0, raw_table, RAW_TABLE_SIZE);
     parse(raw_table, RAW_TABLE_SIZE, decode_table, TORRENT_TABLE_SIZE);
-    struct parse_item *item = parser_table_lookup("path", decode_table, TORRENT_TABLE_SIZE);
-    out(item);
-    printf("%d\n", item->count);
-    item = parser_table_lookup("length", decode_table, TORRENT_TABLE_SIZE);
-    printf("%d\n", item->count);
-    item = parser_table_lookup("crc32", decode_table, TORRENT_TABLE_SIZE);
-    printf("%d\n", item->count);
-    item = parser_table_lookup("piece length", decode_table, TORRENT_TABLE_SIZE);
-    out(item);
-
-    struct url *res = parse_url("bt1.archive.org:6779/announce", 36);
-    printf("%s\t%s\t%s\n", res->host_name, res->port, res->path);
-
-    send_request();
-    parse_peer();
+    send_tracker_request();
+    init_peers();
     generate_pieces();
-    struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
-    int number_of_pieces  = pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+}
+
+void display_progress() {
+    static char last_log_line[1024];
+    static float percentage_completed = -1.0;
+    int number_of_pieces, number_of_peers;
+    float progress = 0.0, percentage = 0.0;
+    char current_log_line[1024];
+    number_of_pieces = get_piece_size();
     for ( int i = 0; i < number_of_pieces; i++ ) {
-        printf("Index: %d, Size: %d, Is Full: %d, Number of Blocks: %d, Hash: %s, File Length: %d, File Offset: %d, Piece Offset: %d, File Name: %s\n", pieces[i]->piece_index, pieces[i]->piece_size, pieces[i]->is_full, pieces[i]->number_of_blocks, pieces[i]->piece_hash, pieces[i]->file_list->length,  pieces[i]->file_list->file_offset,  pieces[i]->file_list->piece_offset,  pieces[i]->file_list->path);
+        for ( int j = 0; j < pieces[i]->number_of_blocks; j++ ) {
+            if ( pieces[i]->block_list[j]->state == FULL ) {
+                progress += pieces[i]->block_list[j]->block_size;
+            }
+        }
     }
-    char *me = malloc(68);
-    generate_handshake_message(me);
-    write(1, me, 68);
-    printf("\n");
-    struct handshake_message *hm = read_handshake_message(me);
-    printf("%s\n", hm->peer_id);
-    generate_keepalive_message(me);
-    printf("%s\n", me);
-    printf("%d\n", is_keepalive_message(me));
-    generate_choke_message(me);
-    printf("%s\n", me);
-    printf("%d\n", is_choke_message(me));
-    generate_unchoke_message(me);
-    printf("%s\n", me);
-    printf("%d\n", is_unchoke_message(me));
-    generate_interested_message(me);
-    printf("%s\n", me);
-    printf("%d\n", is_interested_message(me));
-    generate_uninterested_message(me);
-    printf("%s\n", me);
-    printf("%d\n", is_uninterested_message(me));
-    generate_have_message(me, 145);
-    printf("%s\n", me);
-    printf("%d\n", read_have_message(me));
-    free(me);
-    me = malloc(get_piece_size()+5+1);
-    SetBit(bitfields, 62);
-    for ( i = 0; i < (int)ceil(get_piece_size()/8.0); i++ ) {
-        printf("%d\t", bitfields[i]);
+
+    if ( progress == percentage_completed ) return;
+
+    number_of_peers = unchoked_peers_count();
+    percentage = (progress/get_torrent_file_size()) * 100;
+    sprintf(current_log_line, "Number of connected peers: %d\tPercentage completed: %.2f\t%d/%d pieces\n",
+            number_of_peers, percentage, complete_pieces, number_of_pieces);
+    if ( strcmp(current_log_line, last_log_line) != 0 ) printf("%s", current_log_line);
+    strcpy(last_log_line, current_log_line);
+    percentage_completed = progress;
+}
+
+void start_download(char *file_name, char *prog) {
+    int number_of_pieces, i;
+    struct peer **start_peers, *peer;
+    struct piece *single_piece;
+    struct block *single_block;
+    char *message;
+    initialize_tables(file_name, prog);
+    start_peers = get_peers();
+    add_peers(start_peers, get_number_original_peers());
+    free(start_peers);
+    number_of_pieces = get_piece_size();
+    while ( !all_pieces_completed() ) {
+        if ( !has_unchoked_peers() ) {
+            sleep(1);
+            continue;
+        }
+
+        for ( i = 0; i < number_of_pieces; i++ ) {
+            single_piece = pieces[i];
+
+            if ( single_piece->is_full ) continue;
+
+            peer = get_random_peer_having_piece(i);
+
+            if ( peer == NULL ) continue;
+
+            update_block_status(single_piece);
+
+            single_block = get_empty_block(single_piece);
+            if ( single_block == NULL ) continue;
+
+            message = malloc(17);
+            generate_request_message(message, i, single_block->block_offset, single_block->block_size);
+            send_to_peer(peer, message, 17);
+        }
+
+        display_progress();
+        sleep(1);
     }
-    printf("\n");
-    generate_bitfield_message(me);
-    int len = (int)ceil(get_piece_size()/8.0);
-    for ( i = 5; i < len+5; i++ ) {
-        printf("\\x%02x ", me[i]);
-    }
-    printf("\n");
-    char fields[(int)ceil(get_piece_size()/8.0)];
-    read_bitfield_message(me, fields);
-    for ( i = 0; i < (int)ceil(get_piece_size()/8.0); i++ ) {
-        printf("%d\t", fields[i]);
-    }
-    printf("\n");
-    generate_request_message(me, 10, 30004, 32875);
-    int request[3];
-    read_request_message(me, request);
-    printf("%d\t%d\t%d\n", request[0], request[1], request[2]);
-    generate_piece_message(me, 10, 300004, 5, "Hello");
-    struct piece_message *t = get_piece_message(me);
-    t->data[5] = '\0';
-    printf("%s\n", t->data);
-    generate_cancel_message(me, 10, 30089, 38275);
-    read_cancel_message(me, request);
-    printf("%d\t%d\t%d\n", request[0], request[1], request[2]);
-    generate_port_message(me, 4145);
-    printf("%d\n", read_port_message(me));
-    return 0;
+    printf("File downloaded!");
+    display_progress();
+}
+
+int main(int argc, char *argv[]) {
+    char *file_name = "./won.torrent";
+    char *prog = argv[0];
+    //start_download(file_name, prog);
+    test(file_name);
 }

@@ -10,10 +10,10 @@ LDIR=../lib
 
 LIBS=-L/usr/local/Cellar/openssl@3/3.0.1/lib -lssl -lcrypto
 
-_DEPS = parser.h util.h raw.h url.h bitfield.h peers_handler.h peer_message.h pieces_handler.h piece.h tracker.h peer.h
+_DEPS = parser.h util.h raw.h url.h bitfield.h peers_handler.h peer_message.h pieces_handler.h piece.h tracker.h peer.h test.h
 DEPS = $(patsubst %,$(IDIR)/%,$(_DEPS))
 
-_OBJ = simpletorrent.o parser.o util.o raw.o url.o bitfield.o peers_handler.o peer_message.o pieces_handler.o piece.o tracker.o peer.o
+_OBJ = simpletorrent.o parser.o util.o raw.o url.o bitfield.o peers_handler.o peer_message.o pieces_handler.o piece.o tracker.o peer.o test.o
 OBJ = $(patsubst %, $(ODIR)/%,$(_OBJ))
 
 $(ODIR)/%.o: %.c $(DEPS)

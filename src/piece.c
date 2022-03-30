@@ -15,6 +15,7 @@ void init_block(struct piece *single_piece) {
     if ( single_piece->number_of_blocks == 1 ) {
         piece_block = (struct block *) malloc(sizeof(struct block));
         piece_block->block_size = single_piece->piece_size;
+        piece_block->block_offset = 0;
         piece_block->last_seen = 0;
         piece_block->state = FREE;
         piece_block->data = NULL;
@@ -28,6 +29,7 @@ void init_block(struct piece *single_piece) {
         }
         piece_block = (struct block *) malloc(sizeof(struct block));
         piece_block->block_size = block_size;
+        piece_block->block_offset = BLOCK_SIZE*i;
         piece_block->last_seen = 0;
         piece_block->state = FREE;
         piece_block->data = NULL;
@@ -120,6 +122,8 @@ int set_to_full(struct piece *piece_node) {
     piece_node->is_full = 1;
     piece_node->raw_data = data;
     write_piece_to_disk(piece_node);
+    free(piece_node->raw_data);
+    piece_node->raw_data = NULL;
     return 1;
 }
 
@@ -131,10 +135,8 @@ void merge_blocks(struct piece *piece_node, char *data) {
         single_block = piece_node->block_list[i];
         memcpy(data+piece_offset, single_block->data, single_block->block_size);
         free(single_block->data);
-        free(single_block);
         piece_offset += single_block->block_size;
     }
-    free(piece_node->block_list);
 }
 
 int valid_blocks(struct piece *single_piece, char *data) {

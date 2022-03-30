@@ -19,7 +19,7 @@
 #include "util.h"
 #include "tracker.h"
 
-void send_request(){
+void send_tracker_request(){
     struct url *tracker_url = get_url();
     peer_id = (char *) malloc((PEER_ID_LENGTH+1)*sizeof(char));
     char *gen = generate_string(PEER_ID_LENGTH-8);

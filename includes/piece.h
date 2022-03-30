@@ -6,6 +6,7 @@ typedef enum {FREE=0, PENDING, FULL} State;
 
 struct block {
     int block_size;
+    int block_offset;
     uintmax_t last_seen;
     State state;
     char *data;

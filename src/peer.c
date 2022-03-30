@@ -99,6 +99,10 @@ void send_to_peer(struct peer *p, char *message, int message_length) {
         sent += bytes;
     }
     while ( sent < message_length );
+
+    if ( sent >= message_length ) {
+        free(message);
+    }
     p->last_call = (int) time(0);
 }
 

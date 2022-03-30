@@ -9,21 +9,34 @@
 
 #include "parser.h"
 #include "peers_handler.h"
+#include "util.h"
 
-void parse_peer() {
+struct peer **get_peers() {
     struct parse_item *peer_item = parser_table_lookup("peers", tracker_response_table, TRACKER_RESPONSE_SIZE);
     if ( peer_item == NULL ) {
-        return;
+        return NULL;
     }
     struct str *peers = peer_item->head->value;
     int array_length = peers->length/NETWORK_LENGTH;
     char *peers_array[array_length][2];
     fill_peer(peers_array, peers);
     int i = 0;
+    int number_of_pieces = get_piece_size();
+    struct peer **raw_peers = (struct peer **) malloc(sizeof(struct peer *)*array_length);
+    struct peer *p;
     while ( i < array_length ) {
         printf("%s: %s\n", peers_array[i][0], peers_array[i][1]);
+        p = init_peer(peers_array[i][0], peers_array[i][0], number_of_pieces);
+        raw_peers[i] = p;
         i++;
     }
+    return raw_peers;
+}
+
+int get_number_original_peers() {
+    struct parse_item *peer_item = parser_table_lookup("peers", tracker_response_table, TRACKER_RESPONSE_SIZE);
+    struct str *peers = peer_item->head->value;
+    return peers->length/NETWORK_LENGTH;
 }
 
 void fill_peer(char *peers[][2], struct str *peers_str) {
@@ -64,6 +77,9 @@ struct peer *get_random_peer_having_piece(int piece_index) {
         if ( is_eligible(peer) && is_unchoked(peer) && am_interested(peer) && has_piece(peer, piece_index)) {
             ready_peers[count++] = peer;
         }
+    }
+    if ( count == 0 ) {
+        return NULL;
     }
     srand(time(NULL));
     return ready_peers[rand() % count];
@@ -130,7 +146,7 @@ void extract_sockets(struct pollfd **pfds) {
     }
 }
 
-void run() {
+void connect_to_peers() {
     struct pollfd *pfds;
     struct peer *p;
     int count, status, poll_count;
