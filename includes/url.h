@@ -11,6 +11,7 @@ struct url {
     char *host_name;
     char *path;
     char *port;
+    char *scheme;
 };
 
 struct url *parse_url(char *uri, int uri_length);

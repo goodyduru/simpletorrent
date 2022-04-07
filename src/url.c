@@ -6,17 +6,23 @@
 #include "url.h"
 
 struct url *parse_url(char *announce, int uri_length) {
-    int i, j, k, seen_slash, seen_colon;
+    int i, j, k, l, seen_slash, seen_colon;
     char prev, current;
     char host_name[HOST_NAME_LENGTH];
     char path[PATH_LENGTH];
     char port[PORT_LENGTH];
-    seen_slash = 0, seen_colon = 0, j = 0; k = 0;
+    char scheme[8];
+    seen_slash = 0, seen_colon = 0, j = 0, k = 0, l = 0;
     struct url *result = (struct url *)malloc(sizeof(struct url));
     for ( i = 0; i < uri_length; i++ ) {
         current = announce[i];
         // We want to strip protocol info from the url
         if ( seen_slash == 0 && current == '/' && prev == '/' ) {
+            while ( host_name[l] != ':' ) {
+                scheme[l] = host_name[l];
+                l++;
+            }
+            scheme[++l] = '\0';
             j = 0;
         }
         // This should signify the switch from host address to  path
@@ -49,6 +55,7 @@ struct url *parse_url(char *announce, int uri_length) {
     result->host_name = strdup(host_name);
     result->path = strdup(path);
     result->port = (k == 1) ? "6969" : strdup(port);
+    result->scheme = strdup(scheme);
     return result;
 }
 
