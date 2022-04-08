@@ -22,12 +22,12 @@ struct url *parse_url(char *announce, int uri_length) {
                 scheme[l] = host_name[l];
                 l++;
             }
-            scheme[++l] = '\0';
+            scheme[l] = '\0';
             j = 0;
         }
         // This should signify the switch from host address to  path
         else if ( seen_slash == 0 && current == '/' && prev != ':') {
-            host_name[j+1] = '\0';
+            host_name[j] = '\0';
             j = 0;
             path[j++] = current;
             seen_slash = 1;
