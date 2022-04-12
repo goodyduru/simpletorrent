@@ -17,4 +17,5 @@ void create_directory(char *dir);
 unsigned char *get_info_hash();
 int get_piece_size();
 unsigned char reverse_bit(unsigned char b);
+int get_rand();
 #endif

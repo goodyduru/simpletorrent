@@ -49,12 +49,13 @@ unsigned int hash(char *data, int data_len) {
 char *generate_string(int string_length) {
     char *result, *begin;
     char choices[] = "abcdefghijklmnopqrstuvwxyz0123456789";
-    result = (char *) malloc(string_length*sizeof(char));
+    result = (char *) malloc(string_length+1);
     begin = result;
     srand(time(0));
     for ( int i = 0; i < string_length; i++ ) {
         *result++ = choices[rand() % 36];
     }
+    *result = '\0';
     return begin;
 }
 
@@ -101,4 +102,9 @@ unsigned char* get_info_hash() {
 int get_piece_size() {
     struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
     return pieces_item->head->value->length / HASHED_PIECE_LENGTH;
+}
+
+int get_rand() {
+    srand(time(0));
+    return rand();
 }
