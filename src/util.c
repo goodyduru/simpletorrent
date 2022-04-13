@@ -3,8 +3,10 @@
 #include <stdlib.h>
 #include <time.h>
 #include <unistd.h>
+#include <arpa/inet.h>
 #include <sys/stat.h>
 #include <openssl/sha.h>
+#include <netinet/in.h>
 
 #include "parser.h"
 #include "util.h"
@@ -107,4 +109,23 @@ int get_piece_size() {
 int get_rand() {
     srand(time(0));
     return rand();
+}
+
+void gen_ip_and_port(char *item, char *peer[]) {
+    uint32_t ip;
+    short int port;
+    char *port_string, *ip_string;
+    ip_string = (char *) malloc(sizeof(char)*INET_ADDRSTRLEN);
+    port_string = (char *) malloc(sizeof(char)* (MAX_PORT_LENGTH+1));
+    ip = 0;
+    port = 0;
+    memcpy(&ip, item, 4);
+    memcpy(&port, item+4, 2);
+    ip = ntohl(ip);
+    port = ntohs(port);
+    struct in_addr addr = {ip};
+    sprintf(ip_string, "%s", inet_ntoa(addr));
+    sprintf(port_string, "%d", port);
+    peer[0] = ip_string;
+    peer[1] = port_string;
 }

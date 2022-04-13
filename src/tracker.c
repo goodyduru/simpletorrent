@@ -385,6 +385,7 @@ void parse_announce_message(char *response) {
     memcpy(&leechers, response+12, 4);
     memcpy(&seeders, response+16, 4);
     peers = ntohl(leechers) + ntohl(seeders);
+    printf("Total: %d\n", peers);
     for ( int i = 0; i < peers; i++ ) {
         item = malloc(7);
         peer = (struct str *)malloc(sizeof(sizeof(struct str)));
@@ -392,7 +393,8 @@ void parse_announce_message(char *response) {
         item[6] = '\0';
         peer->data = item;
         peer->length = 6;
-        printf("Peers: %s %d\n", peer->data, peer->length);
+        char* p[2];
+        gen_ip_and_port(item, p);
         parser_table_set("peers", peer, tracker_response_table, TRACKER_RESPONSE_SIZE);
     }
 }
