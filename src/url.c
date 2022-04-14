@@ -6,13 +6,13 @@
 #include "url.h"
 
 struct url *parse_url(char *announce, int uri_length) {
-    int i, j, k, l, seen_slash, seen_colon;
+    int i, j, k, l, path_length, seen_slash, seen_colon;
     char prev, current;
     char host_name[HOST_NAME_LENGTH];
     char path[PATH_LENGTH];
     char port[PORT_LENGTH];
     char scheme[8];
-    seen_slash = 0, seen_colon = 0, j = 0, k = 0, l = 0;
+    seen_slash = 0, seen_colon = 0, j = 0, k = 0, l = 0, path_length = 0;
     struct url *result = (struct url *)malloc(sizeof(struct url));
     for ( i = 0; i < uri_length; i++ ) {
         current = announce[i];
@@ -27,9 +27,7 @@ struct url *parse_url(char *announce, int uri_length) {
         }
         // This should signify the switch from host address to  path
         else if ( seen_slash == 0 && current == '/' && prev != ':') {
-            host_name[j] = '\0';
-            j = 0;
-            path[j++] = current;
+            path[path_length++] = current;
             seen_slash = 1;
         }
         // Check if colon isn't followed by slash, initialise seen_slash
@@ -46,11 +44,12 @@ struct url *parse_url(char *announce, int uri_length) {
         }
         // Add to path
         else {
-            path[j++] = current;
+            path[path_length++] = current;
         }
         prev = current;
     }
-    path[j] = '\0';
+    host_name[j] = '\0';
+    path[path_length] = '\0';
     port[k++] = '\0';
     result->host_name = strdup(host_name);
     result->path = strdup(path);

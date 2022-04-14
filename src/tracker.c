@@ -42,9 +42,17 @@ void send_tracker_request(){
         else if ( strcmp("udp", tracker_url->scheme) == 0 ) {
             add_udp_peers(tracker_url, peer_id);
         }
-        free(tracker_url);
+        free_url(tracker_url);
     }
     free(tracker_urls);
+}
+
+void free_url(struct url *uri) {
+    free(uri->host_name);
+    free(uri->scheme);
+    free(uri->port);
+    free(uri->path);
+    free(uri);
 }
 
 struct url **get_urls() {

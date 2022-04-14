@@ -7,6 +7,7 @@ struct udp_response {
 };
 
 void send_tracker_request();
+void free_url(struct url *uri);
 struct url **get_urls();
 int number_of_trackers();
 char *get_ip();
