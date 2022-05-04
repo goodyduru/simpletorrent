@@ -62,7 +62,7 @@ struct str *generate_str(char buffer[], int begin, int end ) {
     char *data = (char *) malloc(sizeof(char)*string_len);
     memcpy(data, buffer+begin, string_len - 1);
     data[string_len-1] = '\0';
-    content->length = string_len;
+    content->length = string_len-1;
     content->data = data;
     return content;
 }
