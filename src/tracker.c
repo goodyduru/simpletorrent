@@ -34,6 +34,7 @@ void send_tracker_request(){
             if ( body == NULL ) {
                 continue;
             }
+            struct raw_item *raw_tracker_response_table[TRACKER_RAW_RESPONSE_SIZE];
             struct str *complete = get_raw_content(body, 0, "complete", raw_tracker_response_table, TRACKER_RAW_RESPONSE_SIZE);
             free(complete->data);
             free(complete);
@@ -251,7 +252,7 @@ void add_udp_peers(struct url *uri, char *peer_id) {
     int i = 0;
     char *connect_message = generate_connect_message(transaction_id);
     while ( i < 4 && response == NULL ) {
-        sleep(i);
+        sleep(1);
         response = send_udp_message(sockfd, connect_message, 16);
         i++;
     }
@@ -271,7 +272,7 @@ void add_udp_peers(struct url *uri, char *peer_id) {
     i = 0;
     char *announce_message = generate_announce_message(transaction_id, connection_id);
     while ( i < 4 && response == NULL ) {
-        sleep(i);
+        sleep(1);
         response = send_udp_message(sockfd, announce_message, 98);
         i++;
     }
@@ -349,12 +350,11 @@ char *generate_connect_message(int transaction_id) {
 long parse_connect_message(char *response) {
     long connection_id  = 0;
     memcpy(&connection_id, response+8, 8);
-    return ntohll(connection_id);
+    return connection_id;
 }
 
 char *generate_announce_message(int transaction_id, long connection_id) {
     char *message = malloc(98);
-    connection_id = htonll(connection_id);
     int action = htonl(1);
     transaction_id = htonl(transaction_id);
     unsigned char *info_hash = get_info_hash();
@@ -364,7 +364,7 @@ char *generate_announce_message(int transaction_id, long connection_id) {
     int event = htonl(0); //started
     int ip = htonl(0);
     int key = htonl(0);
-    int num_want = 30;
+    int num_want = htonl(-1);
     short int port = htons(atoi(MY_PORT));
 
     memcpy(message, &connection_id, 8);
@@ -403,6 +403,7 @@ void parse_announce_message(char *response) {
         peer->length = 6;
         char* p[2];
         gen_ip_and_port(item, p);
+        printf("IP: %s\tPort: %s\n", p[0], p[1]);
         parser_table_set("peers", peer, tracker_response_table, TRACKER_RESPONSE_SIZE);
     }
 }
@@ -432,7 +433,7 @@ struct udp_response *send_udp_message(int sockfd, char *message, int message_len
 
 struct udp_response *receive_udp_message(int sockfd, int action, int transaction_id, int message_length) {
     int bytes, trans_id, act;
-    int size = 200;
+    int size = 4096;
     char *response = malloc(size);
     while (1) {
         bytes = recv(sockfd, response, size, 0);

@@ -15,10 +15,30 @@ int parser_table_find_slot(char *key, struct parse_item *table[], int table_size
     return index;
 }
 
+int node_value_exists(int index, struct str *value, struct parse_item *table[]) {
+    struct parse_item *item;
+    struct decode *current;
+
+    item = table[index];
+    current = item->head;
+    while ( current != NULL ) {
+        if ( memcmp(current->value->data, value->data, value->length) == 0 ) {
+            return 1;
+        }
+        current = current->next;
+    }
+    return 0;
+}
+
 void parser_table_set(char *key, struct str *value, struct parse_item *table[], int table_size) {
     int index = parser_table_find_slot(key, table, table_size);
     if ( table[index] != NULL ) {
-        add_value_to_node(index, value, table);
+        if ( strcmp(key, "peers") == 0 && !node_value_exists(index, value, table) ) {
+            add_value_to_node(index, value, table);
+        }
+        else if ( strcmp(key, "peers") != 0 ) {
+            add_value_to_node(index, value, table);
+        }
         return;
     }
     struct decode *head = (struct decode *)malloc(sizeof(struct decode));
@@ -254,4 +274,11 @@ void parse_dict(char buffer[], int *index_ptr, struct parse_item *table[], int t
     }
     index++; //account for e
     *index_ptr = index;
+}
+
+struct str *to_str(char *item, int length) {
+    struct str *result = ( struct str * ) malloc(sizeof(struct str));
+    result->data = item;
+    result->length = length;
+    return result;
 }

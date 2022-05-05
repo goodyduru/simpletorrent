@@ -96,8 +96,13 @@ void create_directory(char *dir) {
 
 unsigned char* get_info_hash() {
     struct str *info = raw_table_lookup("info", raw_table, RAW_TABLE_SIZE);
+    printf("Length of info: %d\n", info->length);
     unsigned char *hash = (unsigned char *) malloc(SHA_DIGEST_LENGTH*sizeof(unsigned char));
     SHA1((unsigned char *)info->data, info->length, hash);
+    for ( int i = 0; i < SHA_DIGEST_LENGTH; i++ ) {
+        printf("%02x", hash[i]);
+    }
+    printf("\n");
     return hash;
 }
 
@@ -113,16 +118,14 @@ int get_rand() {
 
 void gen_ip_and_port(char *item, char *peer[]) {
     uint32_t ip;
-    short int port;
+    unsigned short int port;
     char *port_string, *ip_string;
     ip_string = (char *) malloc(sizeof(char)*INET_ADDRSTRLEN);
     port_string = (char *) malloc(sizeof(char)* (MAX_PORT_LENGTH+1));
     ip = 0;
     port = 0;
     memcpy(&ip, item, 4);
-    memcpy(&port, item+4, 2);
-    ip = ntohl(ip);
-    port = ntohs(port);
+    port = ((unsigned char)item[4] << 8) + (unsigned char) item[5];
     struct in_addr addr = {ip};
     sprintf(ip_string, "%s", inet_ntoa(addr));
     sprintf(port_string, "%d", port);

@@ -7,26 +7,25 @@
 #include <unistd.h>
 #include <netinet/in.h>
 
-#include "parser.h"
 #include "peers_handler.h"
 #include "util.h"
 
 struct peer **get_peers() {
-    struct parse_item *peer_item = parser_table_lookup("peers", tracker_response_table, TRACKER_RESPONSE_SIZE);
-    if ( peer_item == NULL ) {
+    struct parse_item *peer_list = parser_table_lookup("peers", tracker_response_table, TRACKER_RESPONSE_SIZE);
+    if ( peer_list == NULL ) {
         return NULL;
     }
-    struct str *peers = peer_item->head->value;
-    int array_length = peers->length/NETWORK_LENGTH;
+    printf("Number of Peers: %d\n", peer_list->count);
+    int array_length = peer_list->count * 2;
     char *peers_array[array_length][2];
-    fill_peer(peers_array, peers);
+    fill_peer(peers_array, peer_list, &array_length);
     int i = 0;
     int number_of_pieces = get_piece_size();
     struct peer **raw_peers = (struct peer **) malloc(sizeof(struct peer *)*array_length);
     struct peer *p;
     while ( i < array_length ) {
-        printf("%s: %s\n", peers_array[i][0], peers_array[i][1]);
-        p = init_peer(peers_array[i][0], peers_array[i][0], number_of_pieces);
+        printf("IP: %s\tPort: %s\n", peers_array[i][0], peers_array[i][1]);
+        p = init_peer(peers_array[i][0], peers_array[i][1], number_of_pieces);
         raw_peers[i] = p;
         i++;
     }
@@ -39,27 +38,33 @@ int get_number_original_peers() {
     return peers->length/NETWORK_LENGTH;
 }
 
-void fill_peer(char *peers[][2], struct str *peers_str) {
-    int index = 0, j = 0;
-    int str_length = peers_str->length;
+void fill_peer(char *peers[][2], struct parse_item *peer_list, int *peer_length) {
+    int length = *peer_length, index = 0, j = 0;
+    struct str *peer_str;
     char *item = (char *) malloc(sizeof(char)*NETWORK_LENGTH);
-    while ( index < str_length ) {
-        memcpy(item, peers_str->data+index, NETWORK_LENGTH);
-        char *net[2];
-        gen_ip_and_port(item, peers[j++]);
-        index += NETWORK_LENGTH;
+    struct decode *current = peer_list->head;
+    int pos = parser_table_find_slot("peers", tracker_response_table, TRACKER_RESPONSE_SIZE);
+    while ( current && j < length ) {
+        if ( current->value->length <= 6 ) {
+            memcpy(item, current->value->data, NETWORK_LENGTH);
+            char *net[2];
+            gen_ip_and_port(item, peers[j++]);
+        }
+        else {
+            while ( index < current->value->length && j < length ) {
+                memcpy(item, current->value->data+index, NETWORK_LENGTH);
+                peer_str = to_str(item, NETWORK_LENGTH);
+                if ( !node_value_exists(pos, peer_str, tracker_response_table) ) {
+                    char *net[2];
+                    gen_ip_and_port(item, peers[j++]);
+                }
+                index += NETWORK_LENGTH;
+            }
+        }
+        current = current->next;
     }
     free(item);
-}
-
-void gen_ip_and_port(char *item, char *peer[]) {
-    char *port, *ip;
-    ip = (char *) malloc(sizeof(char)*INET_ADDRSTRLEN);
-    port = (char *) malloc(sizeof(char)* (MAX_PORT_LENGTH+1));
-    sprintf(ip, "%d.%d.%d.%d", abs(item[0]), abs(item[1]), abs(item[2]), abs(item[3]));
-    sprintf(port, "%d%d", abs(item[4]), abs(item[5]));
-    peer[0] = ip;
-    peer[1] = port;
+    *peer_length = j;
 }
 
 void init_peers() {
@@ -105,9 +110,17 @@ int unchoked_peers_count() {
 }
 
 void add_peers(struct peer **new_peers, int length) {
+    int connected;
     for ( int i = 0; i < length; i++ ) {
-        handshake(new_peers[i]);
-        add_peer(new_peers[i]);
+        connected = peer_connect(new_peers[i]);
+        printf("Connected: %d\n", connected);
+        if ( connected ) {
+            handshake(new_peers[i]);
+            add_peer(new_peers[i]);
+        }
+        else {
+            free(new_peers[i]);
+        }
     }
 }
 
@@ -141,16 +154,21 @@ struct peer *get_peer_by_socket(int socket) {
 
 void extract_sockets(struct pollfd **pfds) {
     for ( int i = 0; i < peer_count; i++ ) {
+        printf("Socket: %d\n", peers[i]->socket);
         (*pfds)[i].fd = peers[i]->socket;
         (*pfds)[i].events = POLLIN;
     }
 }
 
-void connect_to_peers() {
+void *connect_to_peers() {
     struct pollfd *pfds;
     struct peer *p;
     int count, status, poll_count;
-    while (is_active && peer_count) {
+    while ( is_active ) {
+        if ( !peer_count ) {
+            sleep(2);
+            continue;
+        }
         pfds = malloc(sizeof(*pfds) * peer_count);
         extract_sockets(&pfds);
         poll_count = poll(pfds, peer_count, 1000);
@@ -158,14 +176,14 @@ void connect_to_peers() {
             perror("poll error");
             exit(1);
         }
-        count = peer_count;
-        for ( int i = 0; i < count; i++ ) {
+        for ( int i = 0; i < peer_count; i++ ) {
             p = get_peer_by_socket(pfds[i].fd);
             if ( !p->healthy ) {
                 remove_peer(p, pfds);
                 continue;
             }
             if ( pfds[i].revents & POLLIN ) {
+                printf("Health: %d\n", p->healthy);
                 status = receive_from_peer(p);
                 if ( status == 0 ) {
                     remove_peer(p, pfds);
@@ -176,4 +194,5 @@ void connect_to_peers() {
         }
         free(pfds);
     }
+    return NULL;
 }
