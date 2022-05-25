@@ -1,4 +1,5 @@
 #include <math.h>
+#include <pthread.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,6 +30,7 @@ void initialize_tables(char *file_name, char *prog) {
     fread(buffer, 1, sizeof buffer, fp);
     build_raw_table(buffer, 0, raw_table, RAW_TABLE_SIZE);
     parse(raw_table, RAW_TABLE_SIZE, decode_table, TORRENT_TABLE_SIZE);
+    get_info_hash();
     send_tracker_request();
     init_peers();
     generate_pieces();
@@ -66,17 +68,21 @@ void start_download(char *file_name, char *prog) {
     struct piece *single_piece;
     struct block *single_block;
     char *message;
+    pthread_t th;
     initialize_tables(file_name, prog);
     start_peers = get_peers();
     add_peers(start_peers, get_number_original_peers());
     free(start_peers);
     number_of_pieces = get_piece_size();
+    printf("Number of pieces: %d\n", number_of_pieces);
+    pthread_create(&th, NULL, connect_to_peers, NULL);
     while ( !all_pieces_completed() ) {
         if ( !has_unchoked_peers() ) {
+            printf("No piece\n");
             sleep(1);
             continue;
         }
-
+        printf("Piece!!!\n");
         for ( i = 0; i < number_of_pieces; i++ ) {
             single_piece = pieces[i];
 
@@ -104,8 +110,8 @@ void start_download(char *file_name, char *prog) {
 }
 
 int main(int argc, char *argv[]) {
-    char *file_name = "./won.torrent";
+    char *file_name = "./three.busy.debras.s02e01.1080p.web.h264-whosnext[eztv.re].mkv.torrent";
     char *prog = argv[0];
-    //start_download(file_name, prog);
-    test(file_name);
+    start_download(file_name, prog);
+    //test(file_name);
 }

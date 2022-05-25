@@ -23,9 +23,9 @@
  *
  * */
 void generate_handshake_message(char *message) {
-    memset(message, PSTR_V1_LENGTH, 1);
+    memset(message, (char) PSTR_V1_LENGTH, 1);
     memcpy(message+1, PSTR_V1, PSTR_V1_LENGTH);
-    memset(message+20, 0x0, 8);
+    memset(message+20, 0, 8);
     unsigned char *hash = get_info_hash();
     memcpy(message+28, hash, SHA_DIGEST_LENGTH);
     free(hash);
@@ -311,9 +311,9 @@ int read_port_message(char *message) {
     return port;
 }
 
-int get_message_length(char *message) {
+int get_message_length(char *message, int offset) {
     int message_length = 0;
-    memcpy(&message_length, message, 4);
+    memcpy(&message_length, message+offset, 4);
     message_length = ntohl(message_length);
     return message_length + 4;
 }

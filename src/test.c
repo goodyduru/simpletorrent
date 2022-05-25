@@ -49,22 +49,25 @@ int test(char *file_name) {
     printf("%d\n", item->count);
     item = parser_table_lookup("length", decode_table, TORRENT_TABLE_SIZE);
     printf("%d\n", item->count);
-    item = parser_table_lookup("crc32", decode_table, TORRENT_TABLE_SIZE);
-    printf("%d\n", item->count);
     item = parser_table_lookup("piece length", decode_table, TORRENT_TABLE_SIZE);
     out(item);
 
-    struct url *res = parse_url("bt1.archive.org:6779/announce", 36);
-    printf("%s\t%s\t%s\n", res->host_name, res->port, res->path);
+    struct url *res = parse_url("https://bt1.archive.org:6779/announce", 37);
+    printf("%s\t%s\t%s\t%s\n", res->host_name, res->port, res->path, res->scheme);
 
     send_tracker_request();
     struct peer **tmp = get_peers();
     generate_pieces();
     struct parse_item *pieces_item = parser_table_lookup("pieces", decode_table, TORRENT_TABLE_SIZE);
     int number_of_pieces  = pieces_item->head->value->length / HASHED_PIECE_LENGTH;
-    for ( int i = 0; i < number_of_pieces; i++ ) {
+    /**for ( int i = 0; i < number_of_pieces; i++ ) {
         printf("Index: %d, Size: %d, Is Full: %d, Number of Blocks: %d, Hash: %s, File Length: %d, File Offset: %d, Piece Offset: %d, File Name: %s\n", pieces[i]->piece_index, pieces[i]->piece_size, pieces[i]->is_full, pieces[i]->number_of_blocks, pieces[i]->piece_hash, pieces[i]->file_list->length,  pieces[i]->file_list->file_offset,  pieces[i]->file_list->piece_offset,  pieces[i]->file_list->path);
-    }
+    }*/
+
+    struct parse_item *announce_list = parser_table_lookup("announce-list", decode_table, TORRENT_TABLE_SIZE);
+    out(announce_list);
+    struct parse_item *announce = parser_table_lookup("announce", decode_table, TORRENT_TABLE_SIZE);
+    out(announce);
     char *me = malloc(68);
     generate_handshake_message(me);
     write(1, me, 68);

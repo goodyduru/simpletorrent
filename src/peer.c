@@ -41,10 +41,13 @@ struct peer *init_peer(char *ip, char *port, int number_of_pieces) {
 int peer_connect(struct peer *pr) {
     struct addrinfo hints, *servinfo, *p;
     int sockfd, rv, status;
-    
+    struct timeval timeout;
+    timeout.tv_sec = 2;
+    timeout.tv_usec = 0;
     memset(&hints, 0, sizeof(hints));
     hints.ai_family = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
+    printf("%s\t%s\n", pr->ip, pr->port);
 
     if ( (rv = getaddrinfo(pr->ip, pr->port, &hints, &servinfo)) != 0 ) {
         fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(rv));
@@ -55,6 +58,9 @@ int peer_connect(struct peer *pr) {
         if ( (sockfd = socket(p->ai_family, p->ai_socktype, p->ai_protocol)) == -1 ) {
             perror("client: socket");
             continue;
+        }
+        if ( setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) < 0 ){
+            perror("Set Timeout Error");
         }
         
         if ( connect(sockfd, p->ai_addr, p->ai_addrlen) == -1 ) {
@@ -74,10 +80,10 @@ int peer_connect(struct peer *pr) {
     }
 
     if ( p == NULL ) {
-        fprintf(stderr, "client failed to connect");
         return 0;
     }
     freeaddrinfo(servinfo);
+    printf("Connected to peer\n");
     pr->healthy = 1;
     pr->socket = sockfd;
     return 1;
@@ -90,7 +96,6 @@ void send_to_peer(struct peer *p, char *message, int message_length) {
         bytes = write(p->socket, message+sent, message_length-sent);
         if ( bytes < 0 ) {
             p->healthy = 0;
-            perror("Failed to connect to peer");
             return;
         }
         if ( bytes == 0 ) {
@@ -99,7 +104,6 @@ void send_to_peer(struct peer *p, char *message, int message_length) {
         sent += bytes;
     }
     while ( sent < message_length );
-
     if ( sent >= message_length ) {
         free(message);
     }
@@ -115,6 +119,7 @@ int receive_from_peer(struct peer *p) {
             break;
         }
         else if ( bytes > 0 ) {
+            printf("Received Bytes: %d\n", bytes);
             memcpy(p->buffer+p->buffer_size, message, bytes);
             p->buffer_size += bytes;
         }
@@ -164,6 +169,7 @@ int is_interested(struct peer *p) {
 
 void handshake(struct peer *p) {
     char *message = malloc(68);
+    bzero(message, 68);
     generate_handshake_message(message);
     send_to_peer(p, message, 68);
 }
@@ -176,6 +182,7 @@ int handle_handshake(struct peer *p) {
         p->healthy = 0;
         return 0;
     }
+    printf("Handle handshake: %s\n", p->ip);
     p->has_handshaked = 1;
     slice_buffer(p, length);
     free(peer_message);
@@ -187,24 +194,27 @@ int handle_keepalive(struct peer *p) {
     int is_keepalive = is_keepalive_message(p->buffer);
     int length = 4;
     if ( !is_keepalive ) {
-        printf("Not keepalive message");
         return 0;
     }
+    printf("Handle handshake: %s\n", p->ip);
     slice_buffer(p, length);
     return 1;
 }
 
 void handle_choke(struct peer *p) {
+    printf("Handle choke: %s\n", p->ip);
     p->state->peer_choking = 1;
 }
 
 void handle_unchoke(struct peer *p) {
+    printf("Handle unchoke: %s\n", p->ip);
     p->state->peer_choking = 0;
 }
 
 void handle_interested(struct peer *p) {
     char *message;
     p->state->peer_interested = 1;
+    printf("Handle interested: %s\n", p->ip);
     if ( am_choking(p) ) {
         message = malloc(6);
         generate_unchoke_message(message);
@@ -214,10 +224,12 @@ void handle_interested(struct peer *p) {
 }
 
 void handle_uninterested(struct peer *p) {
+    printf("Handle uninterested: %s\n", p->ip);
     p->state->peer_interested = 0;
 }
 
 void handle_have(struct peer *p, char *mess) {
+    printf("Handle have: %s\n", p->ip);
     char *message;
     int piece_index = read_have_message(mess);
     if ( piece_index == -1 ) {
@@ -234,6 +246,7 @@ void handle_have(struct peer *p, char *mess) {
 }
 
 void handle_bitfield(struct peer *p, char *mess) {
+    printf("Handle bitfield: %s\n", p->ip);
     char *message, *bitfield;
     int status, bitfield_length;
     bitfield_length = (int)ceil(get_piece_size()/8.0);
@@ -253,6 +266,7 @@ void handle_bitfield(struct peer *p, char *mess) {
 }
 
 void handle_request(struct peer *p, char *mess) {
+    printf("Handle request: %s\n", p->ip);
     if ( is_interested(p) && is_unchoked(p) ) {
         int result[3], piece_index, piece_offset, block_length;
         char *block, *message;
@@ -273,6 +287,7 @@ void handle_request(struct peer *p, char *mess) {
 }
 
 void handle_piece(struct peer *p, char *message) {
+    printf("Handle piece: %s\n", p->ip);
     struct piece_message *piece_message = get_piece_message(message);
     receive_block_piece(piece_message->piece_index, 
                         piece_message->piece_offset, 
@@ -281,11 +296,11 @@ void handle_piece(struct peer *p, char *message) {
 }
 
 void handle_cancel(struct peer *p) {
-    printf("Cancel message\n");
+    printf("Cancel message: %s\n", p->ip);
 }
 
 void handle_port(struct peer *p) {
-    printf("Port message\n");
+    printf("Port message: %s\n", p->ip);
 }
 
 void handle_messages(struct peer *p) {
@@ -295,7 +310,7 @@ void handle_messages(struct peer *p) {
         if ( (!p->has_handshaked && handle_handshake(p) ) ||  handle_keepalive(p) ) {
             continue;
         }
-        message_length = get_message_length(p->buffer);
+        message_length = get_message_length(p->buffer, p->buffer_start);
         if ( p->buffer_size < message_length ) {
            break;
         }
@@ -324,7 +339,7 @@ char *get_slice(struct peer *p, int offset_length) {
         p->buffer_size = 0;
     }
     else {
-        p->buffer_start += remaining;
+        p->buffer_start += offset_length;
     }
     return slice;
 }

@@ -292,7 +292,7 @@ int get_socket(struct url *uri) {
     int sockfd, rv, enable;
     struct addrinfo hints, *servinfo, *p;
     struct timeval timeout;
-    timeout.tv_sec = 5;
+    timeout.tv_sec = 2;
     timeout.tv_usec = 0;
     char s[INET_ADDRSTRLEN];
     memset(&hints, 0, sizeof hints);

@@ -19,6 +19,8 @@ struct peer **get_peers() {
     int array_length = peer_list->count * 2;
     char *peers_array[array_length][2];
     fill_peer(peers_array, peer_list, &array_length);
+    printf("Final number of peers: %d\n", array_length);
+    peer_list->count = array_length;
     int i = 0;
     int number_of_pieces = get_piece_size();
     struct peer **raw_peers = (struct peer **) malloc(sizeof(struct peer *)*array_length);
@@ -34,8 +36,7 @@ struct peer **get_peers() {
 
 int get_number_original_peers() {
     struct parse_item *peer_item = parser_table_lookup("peers", tracker_response_table, TRACKER_RESPONSE_SIZE);
-    struct str *peers = peer_item->head->value;
-    return peers->length/NETWORK_LENGTH;
+    return peer_item->count;
 }
 
 void fill_peer(char *peers[][2], struct parse_item *peer_list, int *peer_length) {
@@ -113,7 +114,6 @@ void add_peers(struct peer **new_peers, int length) {
     int connected;
     for ( int i = 0; i < length; i++ ) {
         connected = peer_connect(new_peers[i]);
-        printf("Connected: %d\n", connected);
         if ( connected ) {
             handshake(new_peers[i]);
             add_peer(new_peers[i]);
@@ -154,7 +154,6 @@ struct peer *get_peer_by_socket(int socket) {
 
 void extract_sockets(struct pollfd **pfds) {
     for ( int i = 0; i < peer_count; i++ ) {
-        printf("Socket: %d\n", peers[i]->socket);
         (*pfds)[i].fd = peers[i]->socket;
         (*pfds)[i].events = POLLIN;
     }
@@ -183,7 +182,6 @@ void *connect_to_peers() {
                 continue;
             }
             if ( pfds[i].revents & POLLIN ) {
-                printf("Health: %d\n", p->healthy);
                 status = receive_from_peer(p);
                 if ( status == 0 ) {
                     remove_peer(p, pfds);

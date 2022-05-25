@@ -39,6 +39,6 @@ void generate_cancel_message(char *message, int piece_index, int piece_offset, i
 void read_cancel_message(char *message, int result[]);
 void generate_port_message(char *message, int port);
 int read_port_message(char *message);
-int get_message_length(char *message);
+int get_message_length(char *message, int offset);
 int get_message_id(char *message);
 #endif
