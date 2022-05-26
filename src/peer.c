@@ -8,6 +8,7 @@
 #include <time.h>
 
 #include <netdb.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -38,6 +39,34 @@ struct peer *init_peer(char *ip, char *port, int number_of_pieces) {
     return peer;
 }
 
+int custom_connect(int sockfd, struct addrinfo *p, struct timeval timeout) {
+    int status;
+    fd_set fdset;
+    status = fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFL, 0) | O_NONBLOCK );
+
+    if ( status == -1 ) {
+        close(sockfd);
+        perror("client: fcntl");
+        return 0;
+    }
+
+    connect(sockfd, p->ai_addr, p->ai_addrlen);
+
+    FD_ZERO(&fdset);
+    FD_SET(sockfd, &fdset);
+
+    if ( select(sockfd+1, NULL, &fdset, NULL, &timeout) == 1 ) {
+        int so_error;
+        socklen_t len = sizeof so_error;
+        getsockopt(sockfd, SOL_SOCKET, SO_ERROR, &so_error, &len);
+
+        if ( so_error == 0 ) {
+            return 1;
+        }
+    }
+    return 0;
+}
+
 int peer_connect(struct peer *pr) {
     struct addrinfo hints, *servinfo, *p;
     int sockfd, rv, status;
@@ -59,21 +88,10 @@ int peer_connect(struct peer *pr) {
             perror("client: socket");
             continue;
         }
-        if ( setsockopt(sockfd, SOL_SOCKET, SO_RCVTIMEO, (const char *)&timeout, sizeof(timeout)) < 0 ){
-            perror("Set Timeout Error");
-        }
         
-        if ( connect(sockfd, p->ai_addr, p->ai_addrlen) == -1 ) {
+        if ( custom_connect(sockfd, p, timeout) == 0 ) {
+            perror("client: socket");
             close(sockfd);
-            perror("client: connect");
-            continue;
-        }
-
-        status = fcntl(sockfd, F_SETFL, fcntl(sockfd, F_GETFL, 0) | O_NONBLOCK );
-
-        if ( status == -1 ) {
-            close(sockfd);
-            perror("client: fcntl");
             continue;
         }
         break;
@@ -104,9 +122,6 @@ void send_to_peer(struct peer *p, char *message, int message_length) {
         sent += bytes;
     }
     while ( sent < message_length );
-    if ( sent >= message_length ) {
-        free(message);
-    }
     p->last_call = (int) time(0);
 }
 
@@ -172,6 +187,7 @@ void handshake(struct peer *p) {
     bzero(message, 68);
     generate_handshake_message(message);
     send_to_peer(p, message, 68);
+    free(message);
 }
 
 int handle_handshake(struct peer *p) {

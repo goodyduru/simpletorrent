@@ -75,6 +75,7 @@ void start_download(char *file_name, char *prog) {
     free(start_peers);
     number_of_pieces = get_piece_size();
     printf("Number of pieces: %d\n", number_of_pieces);
+    printf("Number of peers: %d\n", peer_count);
     pthread_create(&th, NULL, connect_to_peers, NULL);
     while ( !all_pieces_completed() ) {
         if ( !has_unchoked_peers() ) {
@@ -82,7 +83,6 @@ void start_download(char *file_name, char *prog) {
             sleep(1);
             continue;
         }
-        printf("Piece!!!\n");
         for ( i = 0; i < number_of_pieces; i++ ) {
             single_piece = pieces[i];
 
@@ -100,6 +100,7 @@ void start_download(char *file_name, char *prog) {
             message = malloc(17);
             generate_request_message(message, i, single_block->block_offset, single_block->block_size);
             send_to_peer(peer, message, 17);
+            free(message);
         }
 
         display_progress();
