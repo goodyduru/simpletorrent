@@ -19,6 +19,7 @@
 void initialize_tables(char *file_name, char *prog) {
     FILE *fp;
     int size;
+    pthread_t th;
     int i = 0;
     if ( (fp = fopen(file_name, "rb")) == NULL ) {
         fprintf(stderr, "%s: can't open %s", prog, file_name);
@@ -34,6 +35,7 @@ void initialize_tables(char *file_name, char *prog) {
     send_tracker_request();
     init_peers();
     generate_pieces();
+    pthread_create(&th, NULL, connect_to_peers, NULL);
 }
 
 void display_progress() {
@@ -68,7 +70,6 @@ void start_download(char *file_name, char *prog) {
     struct piece *single_piece;
     struct block *single_block;
     char *message;
-    pthread_t th;
     initialize_tables(file_name, prog);
     start_peers = get_peers();
     add_peers(start_peers, get_number_original_peers());
@@ -76,7 +77,6 @@ void start_download(char *file_name, char *prog) {
     number_of_pieces = get_piece_size();
     printf("Number of pieces: %d\n", number_of_pieces);
     printf("Number of peers: %d\n", peer_count);
-    pthread_create(&th, NULL, connect_to_peers, NULL);
     while ( !all_pieces_completed() ) {
         if ( !has_unchoked_peers() ) {
             printf("No piece\n");

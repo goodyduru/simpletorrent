@@ -90,7 +90,7 @@ int peer_connect(struct peer *pr) {
         }
         
         if ( custom_connect(sockfd, p, timeout) == 0 ) {
-            perror("client: socket");
+            perror("client: connect");
             close(sockfd);
             continue;
         }

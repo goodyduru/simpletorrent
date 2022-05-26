@@ -177,6 +177,9 @@ void *connect_to_peers() {
         }
         for ( int i = 0; i < peer_count; i++ ) {
             p = get_peer_by_socket(pfds[i].fd);
+            if ( p == NULL ) {
+                continue;
+            }
             if ( !p->healthy ) {
                 remove_peer(p, pfds);
                 continue;
