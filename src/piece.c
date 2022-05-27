@@ -89,11 +89,10 @@ struct block *get_empty_block(struct piece *piece_node) {
     for ( int i = 0; i < num_of_blocks; i++ ) {
         single_block = piece_node->block_list[i];
         if ( single_block->state == FREE ) {
-            continue;
+            single_block->state = PENDING;
+            single_block->last_seen = (uintmax_t)time(NULL);
+            return single_block;
         }
-        single_block->state = PENDING;
-        single_block->last_seen = (uintmax_t)time(NULL);
-        return single_block;
     }
     return NULL;
 }

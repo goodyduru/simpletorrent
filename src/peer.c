@@ -151,11 +151,11 @@ int receive_from_peer(struct peer *p) {
 }
 
 int is_eligible(struct peer *p) {
-    return ( p->last_call - (int) time(0) ) > 1;
+    return ( (int) time(0) - p->last_call ) > 1;
 }
 
 int has_piece(struct peer *p, int index) {
-    return TestBit(p->bitfield, index) >= 0;
+    return TestBit(p->bitfield, index) != 0;
 }
 
 int am_choking(struct peer *p) {

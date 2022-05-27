@@ -174,7 +174,7 @@ int read_bitfield_message(char *message, char field[]) {
     memcpy(&message_length, message, 4);
     memcpy(&message_id, message+4, 1);
     message_length = ntohl(message_length);
-    if ( message_length != (bitfield_length+5) || message_id != 5 ) {
+    if ( message_length != (bitfield_length+1) || message_id != 5 ) {
         return 0;
     }
     string_to_bitarray(message+5, bitfield_length, field);
