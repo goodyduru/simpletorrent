@@ -159,9 +159,35 @@ void extract_sockets(struct pollfd **pfds) {
     }
 }
 
+void append_peer_response(struct peer *p, struct network_response *response) {
+    if ( response == NULL ) {
+        return;
+    }
+    int size;
+    if (p->buffer_start >= p->buffer_size/2)  {
+        size = p->buffer_end - p->buffer_start;
+        char *temp = malloc(size);
+        memcpy(temp, p->buffer+p->buffer_start, size);
+        memcpy(p->buffer, temp, size);
+        free(temp);
+        p->buffer_start = 0;
+        p->buffer_end = size;
+    }
+    size = p->buffer_end - p->buffer_start;
+    if ( (size + response->size) >= p->buffer_size ) {
+        p->buffer_size *= 2;
+        p->buffer = realloc(p->buffer, p->buffer_size);
+    }
+    memcpy(p->buffer+p->buffer_end, response->payload, response->end);
+    p->buffer_end += response->end;
+    free(response->payload);
+    free(response);
+}
+
 void *connect_to_peers() {
     struct pollfd *pfds;
     struct peer *p;
+    struct network_response *response;
     int count, status, poll_count;
     while ( is_active ) {
         if ( !peer_count ) {
@@ -185,11 +211,12 @@ void *connect_to_peers() {
                 continue;
             }
             if ( pfds[i].revents & POLLIN ) {
-                status = receive_from_peer(p);
-                if ( status == 0 ) {
+                response = receive_from_peer(p->socket);
+                if ( response == NULL ) {
                     remove_peer(p, pfds);
                     continue;
                 }
+                append_peer_response(p, response);
                 handle_messages(p);
             }
         }

@@ -37,7 +37,7 @@ int complete_pieces;
 
 void init_block(struct piece *single_piece);
 void update_block_status(struct piece *piece_node);
-void set_block(struct piece *piece_node, int piece_offset, char *data);
+void set_block(struct piece *piece_node, int piece_offset, char *data, int block_length);
 void get_block(struct piece *piece_node, int piece_offset, int block_size, char *result);
 struct block *get_empty_block(struct piece *piece_node);
 int are_all_block_full(struct piece *piece_node);

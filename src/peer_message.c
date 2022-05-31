@@ -242,7 +242,7 @@ struct piece_message *get_piece_message(char *message) {
     memcpy(message+9, &piece_offset, 4);
     message_length = ntohl(message_length);
     block_length = message_length - 9;
-    if ( message_length != (block_length+9) || message_id != 7 ) {
+    if ( message_id != 7 ) {
         return NULL;
     }
     block_data = malloc(block_length);
@@ -251,6 +251,7 @@ struct piece_message *get_piece_message(char *message) {
     result->piece_index = ntohl(piece_index);
     result->piece_offset = ntohl(piece_offset);
     result->data = block_data;
+    result->piece_length = block_length;
     return result;
 }
 

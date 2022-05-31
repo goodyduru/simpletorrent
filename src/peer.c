@@ -29,8 +29,9 @@ struct peer *init_peer(char *ip, char *port, int number_of_pieces) {
     peer->number_of_pieces = number_of_pieces;
     peer->bitfield = create_bitarray(number_of_pieces);
     peer->buffer = malloc(PEER_BUFFER_SIZE);
-    peer->buffer_size = 0;
     peer->buffer_start = 0;
+    peer->buffer_end = 0;
+    peer->buffer_size = PEER_BUFFER_SIZE;
     state->am_choking = 1;
     state->am_interested = 0;
     state->peer_choking = 1;
@@ -125,29 +126,50 @@ void send_to_peer(struct peer *p, char *message, int message_length) {
     p->last_call = (int) time(0);
 }
 
-int receive_from_peer(struct peer *p) {
+struct network_response *init_response() {
+    struct network_response *response = (struct network_response *)malloc(sizeof(struct network_response));
+    response->size = BLOCK_SIZE;
+    response->payload = malloc(BLOCK_SIZE);
+    response->end = 0;
+    return response;
+}
+
+void append_response(struct network_response *response, char *message, int bytes) {
+    if ( (response->end + bytes) >= response->size ) {
+        response->size *= 2;
+        response->payload = realloc(response->payload, response->size);
+    }
+    memcpy(response->payload+response->end, message, bytes);
+    response->end += bytes;
+}
+
+struct network_response *receive_from_peer(int socket) {
     int bytes;
     char message[BUFSIZ*4];
+    struct network_response *response = NULL;
     while (1) {
-        bytes = recv(p->socket, message, BUFSIZ*4, 0);
+        bytes = recv(socket, message, BUFSIZ*4, 0);
         if ( bytes == 0 ) {
             break;
         }
         else if ( bytes > 0 ) {
             printf("Received Bytes: %d\n", bytes);
-            memcpy(p->buffer+p->buffer_size, message, bytes);
-            p->buffer_size += bytes;
+            if ( response == NULL ) {
+                response = init_response();
+            }
+            append_response(response, message, bytes);
         }
         else {
             if ( errno == EAGAIN || errno == EWOULDBLOCK ) {
                 break;
             }
             else {
-                return 0;
+                perror("peer: error");
+                break;
             }
         }
     }
-    return 1;
+    return response;
 }
 
 int is_eligible(struct peer *p) {
@@ -191,7 +213,7 @@ void handshake(struct peer *p) {
 }
 
 int handle_handshake(struct peer *p) {
-    struct handshake_message *peer_message = read_handshake_message(p->buffer);
+    struct handshake_message *peer_message = read_handshake_message(p->buffer+p->buffer_start);
     int length = 68;
     if ( peer_message == NULL ) {
         printf("First message should be handshake\n");
@@ -207,12 +229,12 @@ int handle_handshake(struct peer *p) {
 
 int handle_keepalive(struct peer *p) {
     char *buffer;
-    int is_keepalive = is_keepalive_message(p->buffer);
+    int is_keepalive = is_keepalive_message(p->buffer+p->buffer_start);
     int length = 4;
     if ( !is_keepalive ) {
         return 0;
     }
-    printf("Handle handshake: %s\n", p->ip);
+    printf("Handle keepalive: %s\n", p->ip);
     slice_buffer(p, length);
     return 1;
 }
@@ -307,7 +329,8 @@ void handle_piece(struct peer *p, char *message) {
     struct piece_message *piece_message = get_piece_message(message);
     receive_block_piece(piece_message->piece_index, 
                         piece_message->piece_offset, 
-                        piece_message->data);
+                        piece_message->data,
+                        piece_message->piece_length);
     free(piece_message);
 }
 
@@ -322,12 +345,12 @@ void handle_port(struct peer *p) {
 void handle_messages(struct peer *p) {
     char *message;
     int message_length;
-    while ( (p->buffer_size - p->buffer_start) > 4 && p->healthy ) {
+    while ( (p->buffer_end - p->buffer_start) > 4 && p->healthy ) {
         if ( (!p->has_handshaked && handle_handshake(p) ) ||  handle_keepalive(p) ) {
             continue;
         }
         message_length = get_message_length(p->buffer, p->buffer_start);
-        if ( p->buffer_size < message_length ) {
+        if ( (p->buffer_end - p->buffer_start) < message_length ) {
            break;
         }
         message = get_slice(p, message_length);
@@ -338,21 +361,22 @@ void handle_messages(struct peer *p) {
 
 void slice_buffer(struct peer *p, int offset) {
     p->buffer_start += offset;
-    int remaining = p->buffer_size - p->buffer_start;
+    int remaining = p->buffer_end - p->buffer_start;
     if ( remaining <= 0 ) {
         p->buffer_start = 0;
-        p->buffer_size = 0;
+        p->buffer_end = 0;
     }
 }
 
 char *get_slice(struct peer *p, int offset_length) {
-    int remaining = p->buffer_size - offset_length - p->buffer_start;
+    int remaining = p->buffer_end - offset_length - p->buffer_start;
     char *slice, *temp;
     slice = malloc(offset_length);
     memcpy(slice, p->buffer+p->buffer_start, offset_length);
     if ( remaining <= 0 ) {
+        printf("No remaining space\n");
         p->buffer_start = 0;
-        p->buffer_size = 0;
+        p->buffer_end = 0;
     }
     else {
         p->buffer_start += offset_length;

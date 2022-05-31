@@ -12,6 +12,7 @@ struct handshake_message {
 struct piece_message {
     int piece_index;
     int piece_offset;
+    int piece_length;
     char *data;
 };
 

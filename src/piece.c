@@ -67,12 +67,13 @@ void update_block_status(struct piece *piece_node) {
     }
 }
 
-void set_block(struct piece *piece_node, int piece_offset, char *data) {
+void set_block(struct piece *piece_node, int piece_offset, char *data, int block_length) {
     int block_index = piece_offset/BLOCK_SIZE;
     struct block *single_block = piece_node->block_list[block_index];
     if ( !piece_node->is_full && single_block->state != FULL ) {
         single_block->data = data;
         single_block->state = FULL;
+        single_block->block_size = block_length;
     }
 }
 

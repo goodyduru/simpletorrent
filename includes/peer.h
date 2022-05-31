@@ -13,14 +13,21 @@ struct peer {
     int has_handshaked;
     int healthy;
     char *buffer;
-    int buffer_size;
     int buffer_start;
+    int buffer_end;
+    int buffer_size;
     int socket;
     char *ip;
     char *port;
     int number_of_pieces;
     char *bitfield;
     struct peer_state *state;
+};
+
+struct network_response {
+    int size;
+    char *payload;
+    int end;
 };
 
 struct peer **peers;
@@ -31,7 +38,7 @@ int is_active;
 struct peer *init_peer(char *ip, char *port, int number_of_pieces);
 int peer_connect(struct peer *pr);
 void send_to_peer(struct peer *p, char *message, int message_length);
-int receive_from_peer(struct peer *p);
+struct network_response *receive_from_peer(int socket);
 int is_eligible(struct peer *p);
 int has_piece(struct peer *p, int index);
 int am_choking(struct peer *p);
