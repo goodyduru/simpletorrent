@@ -21,7 +21,7 @@
 struct peer *init_peer(char *ip, char *port, int number_of_pieces) {
     struct peer *peer = (struct peer *)malloc(sizeof(struct peer));
     struct peer_state *state = (struct peer_state *)malloc(sizeof(struct peer_state));
-    peer->last_call = 0.0;
+    peer->last_call = 0;
     peer->has_handshaked = 0;
     peer->healthy = 0;
     peer->ip = ip;

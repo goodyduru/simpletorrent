@@ -9,7 +9,7 @@ struct peer_state {
 };
 
 struct peer {
-    float last_call;
+    int last_call;
     int has_handshaked;
     int healthy;
     char *buffer;
