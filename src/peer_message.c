@@ -238,8 +238,8 @@ struct piece_message *get_piece_message(char *message) {
     char *block_data;
     memcpy(&message_length, message, 4);
     memcpy(&message_id, message+4, 1);
-    memcpy(message+5, &piece_index, 4);
-    memcpy(message+9, &piece_offset, 4);
+    memcpy(&piece_index, message+5, 4);
+    memcpy(&piece_offset, message+9, 4);
     message_length = ntohl(message_length);
     block_length = message_length - 9;
     if ( message_id != 7 ) {

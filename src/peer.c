@@ -153,7 +153,6 @@ struct network_response *receive_from_peer(int socket) {
             break;
         }
         else if ( bytes > 0 ) {
-            printf("Received Bytes: %d\n", bytes);
             if ( response == NULL ) {
                 response = init_response();
             }
@@ -325,7 +324,6 @@ void handle_request(struct peer *p, char *mess) {
 }
 
 void handle_piece(struct peer *p, char *message) {
-    printf("Handle piece: %s\n", p->ip);
     struct piece_message *piece_message = get_piece_message(message);
     receive_block_piece(piece_message->piece_index, 
                         piece_message->piece_offset, 
@@ -374,7 +372,6 @@ char *get_slice(struct peer *p, int offset_length) {
     slice = malloc(offset_length);
     memcpy(slice, p->buffer+p->buffer_start, offset_length);
     if ( remaining <= 0 ) {
-        printf("No remaining space\n");
         p->buffer_start = 0;
         p->buffer_end = 0;
     }

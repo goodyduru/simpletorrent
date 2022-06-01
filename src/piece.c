@@ -51,12 +51,10 @@ void add_piece_file_list(struct piece *single_piece, struct file *file_item) {
 
 void update_block_status(struct piece *piece_node) {
     struct block *single_block;
-    time_t result;
     int num_of_blocks = piece_node->number_of_blocks;
     for ( int i = 0; i < num_of_blocks; i++ ) {
         single_block = piece_node->block_list[i];
-        result = time(NULL);
-        if ( single_block->state == PENDING && ((uintmax_t)result - single_block->last_seen) > 5 ) {
+        if ( single_block->state == PENDING && ((int) time(0) - single_block->last_seen) > 5 ) {
             single_block->state = FREE;
             single_block->last_seen = 0;
             if ( single_block->data != NULL ) {
@@ -91,7 +89,7 @@ struct block *get_empty_block(struct piece *piece_node) {
         single_block = piece_node->block_list[i];
         if ( single_block->state == FREE ) {
             single_block->state = PENDING;
-            single_block->last_seen = (uintmax_t)time(NULL);
+            single_block->last_seen = (int)time(0);
             return single_block;
         }
     }

@@ -2,13 +2,13 @@
 #define PIECES_HEADER
 
 #define BLOCK_SIZE 16384
-typedef enum {FREE=0, PENDING, FULL} State;
+typedef enum {FREE=0, PENDING=1, FULL=2} State;
 
 struct block {
     int block_size;
     int block_offset;
-    uintmax_t last_seen;
-    State state;
+    int last_seen;
+    int state;
     char *data;
 };
 
