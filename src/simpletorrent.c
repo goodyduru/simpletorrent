@@ -22,7 +22,7 @@ void initialize_tables(char *file_name, char *prog) {
     pthread_t th;
     int i = 0;
     if ( (fp = fopen(file_name, "rb")) == NULL ) {
-        fprintf(stderr, "%s: can't open %s", prog, file_name);
+        fprintf(stderr, "%s: can't open %s\n", prog, file_name);
         exit(1);
     }
     size = file_size(file_name);
@@ -111,8 +111,12 @@ void start_download(char *file_name, char *prog) {
 }
 
 int main(int argc, char *argv[]) {
-    char *file_name = "./three.busy.debras.s02e01.1080p.web.h264-whosnext[eztv.re].mkv.torrent";
+    if ( argc < 2 ) {
+        fprintf(stderr, "No file name was provided\n");
+        return 0;
+    }
     char *prog = argv[0];
+    char *file_name = argv[1];
     start_download(file_name, prog);
     //test(file_name);
 }
