@@ -113,6 +113,11 @@ int unchoked_peers_count() {
 void add_peers(struct peer **new_peers, int length) {
     int connected;
     for ( int i = 0; i < length; i++ ) {
+        //Add upper limit to peer count
+        if ( peer_count == 8 ) {
+            free(new_peers[i]);
+            continue;
+        }
         connected = peer_connect(new_peers[i]);
         if ( connected ) {
             handshake(new_peers[i]);
@@ -136,6 +141,10 @@ void remove_peer(struct peer *p, struct pollfd *pfd) {
     for ( int i = 0; i < peer_count; i++ ) {
         if ( p->socket == peers[i]->socket ) {
             close(p->socket);
+            if ( p->buffer != NULL ) {
+                free(p->buffer);
+            }
+            free(p);
             peers[i] =  peers[peer_count - 1];
             pfd[i] = pfd[peer_count - 1];
             peer_count--;
