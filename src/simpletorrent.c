@@ -106,7 +106,7 @@ void start_download(char *file_name, char *prog) {
         display_progress();
         sleep(1);
     }
-    printf("File downloaded!");
+    printf("File downloaded!\n");
     display_progress();
 }
 
@@ -118,5 +118,4 @@ int main(int argc, char *argv[]) {
     char *prog = argv[0];
     char *file_name = argv[1];
     start_download(file_name, prog);
-    //test(file_name);
 }
