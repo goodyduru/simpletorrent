@@ -17,7 +17,7 @@ It's a project I worked on to improve my understanding of C and networking. It's
 
 ### What this can't do
 Because this project is for my learning, I didn't implement the following:
-- Distributed Hash Tree
+- Distributed Hash Table
 - Peer Exchange
 - A network listener (this allows other peers to connect to you without you initiating)
 - Rarest piece handler
